@@ -13,20 +13,23 @@ export default function NoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  // Use generic 'id' from route params
+  const noteId = params?.id as string;
+
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/notes/${params.noteId}`);
+      if (!noteId) return;
+      const res = await fetch(`/api/notes/${noteId}`);
       if (res.ok) setData(await res.json());
       setLoading(false);
     }
     load();
-  }, [params.noteId]);
+  }, [noteId]);
 
   const handleFinalize = async () => {
     if (!confirm('Are you sure? Once finalized, this note cannot be edited.')) return;
-    const res = await fetch(`/api/notes/${params.noteId}/finalize`, { method: 'POST' });
+    const res = await fetch(`/api/notes/${noteId}/finalize`, { method: 'POST' });
     if (res.ok) {
-       // Reload
        window.location.reload();
     } else {
        alert('Failed to finalize.');
@@ -40,7 +43,7 @@ export default function NoteDetailPage() {
 
     try {
       // 1. Get Signed URL
-      const urlRes = await fetch(`/api/notes/${params.noteId}/attachments/upload-url`, {
+      const urlRes = await fetch(`/api/notes/${noteId}/attachments/upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: file.name, contentType: file.type })
@@ -57,7 +60,7 @@ export default function NoteDetailPage() {
       if (!uploadRes.ok) throw new Error('Upload failed');
 
       // 3. Record Metadata
-      await fetch(`/api/notes/${params.noteId}/attachments`, {
+      await fetch(`/api/notes/${noteId}/attachments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,7 +72,7 @@ export default function NoteDetailPage() {
       });
 
       // Reload
-      const reload = await fetch(`/api/notes/${params.noteId}`);
+      const reload = await fetch(`/api/notes/${noteId}`);
       setData(await reload.json());
       
     } catch (err: any) {
@@ -158,7 +161,6 @@ export default function NoteDetailPage() {
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg leading-6 font-medium text-gray-900">Attachments</h3>
-          {/* Allow attachments even if finalized? Usually yes, to add scanned docs later. But strict logic might say no. Allowing for now. */}
           <label className="cursor-pointer rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
              {uploading ? 'Uploading...' : 'Upload File'}
              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
@@ -178,7 +180,6 @@ export default function NoteDetailPage() {
                      <p className="text-xs text-gray-500">{(att.fileSizeBytes! / 1024).toFixed(1)} KB • {new Date(att.createdAt).toLocaleDateString()}</p>
                    </div>
                 </div>
-                {/* Download link requires generating a signed URL again, omitting for brevity or implement a download route */}
              </li>
           ))}
         </ul>
