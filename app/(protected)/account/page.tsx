@@ -13,7 +13,7 @@ export default function AccountPage() {
   const [msg, setMsg] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    if (user?.profile) {
+    if (user) {
       set_full_name(user.profile.full_name || '');
     }
   }, [user]);
@@ -86,7 +86,7 @@ export default function AccountPage() {
             <label className="block text-sm font-medium leading-6 text-gray-900">Global Role</label>
             <div className="mt-2">
               <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                {user?.profile?.global_role || 'standard_user'}
+                {user?.global_role || 'standard_user'}
               </span>
             </div>
           </div>
