@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-sm font-medium text-gray-500">Full Name</dt>
-            <dd className="mt-1 text-sm text-gray-900">{userProfile?.fullName || 'Not set'}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{userProfile?.full_name || 'Not set'}</dd>
           </div>
           <div>
             <dt className="text-sm font-medium text-gray-500">Email</dt>
