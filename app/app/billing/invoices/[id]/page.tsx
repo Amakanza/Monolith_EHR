@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { InvoiceDetail } from '@/lib/types/billing';
+import type { InvoiceWithItemsAndPayments } from '@/lib/types/billing';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
