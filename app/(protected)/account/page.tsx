@@ -14,7 +14,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (user) {
-      set_full_name(user.profile.full_name || '');
+      set_full_name(user.full_name || '');
     }
   }, [user]);
 
