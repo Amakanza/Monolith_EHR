@@ -7,14 +7,15 @@ import { useRouter } from 'next/navigation';
 export default function AccountPage() {
   const { user, isLoading, mutate } = useCurrentUser();
   const router = useRouter();
-  const [fullName, setFullName] = useState('');
+
+  const [full_name, set_full_name] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
 
   // Sync state when user loads
   useEffect(() => {
     if (user) {
-      setFullName(user.fullName || '');
+      set_full_name(user.full_name || '');
     }
   }, [user]);
 
@@ -33,14 +34,14 @@ export default function AccountPage() {
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName }),
+        body: JSON.stringify({ full_name }),
       });
 
       if (!res.ok) throw new Error('Failed to update');
-      
+
       await mutate(); // Refresh local user state
       setMsg({ type: 'success', text: 'Profile updated successfully.' });
-    } catch (error) {
+    } catch {
       setMsg({ type: 'error', text: 'An error occurred.' });
     } finally {
       setSaving(false);
@@ -56,7 +57,7 @@ export default function AccountPage() {
         <div className="mt-2 max-w-xl text-sm text-gray-500">
           <p>Manage your personal details and session.</p>
         </div>
-        
+
         <form onSubmit={handleUpdate} className="mt-5 space-y-4">
           <div>
             <label className="block text-sm font-medium leading-6 text-gray-900">Email</label>
@@ -75,8 +76,8 @@ export default function AccountPage() {
             <div className="mt-2">
               <input
                 type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={full_name}
+                onChange={(e) => set_full_name(e.target.value)}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
               />
             </div>
@@ -86,7 +87,7 @@ export default function AccountPage() {
             <label className="block text-sm font-medium leading-6 text-gray-900">Global Role</label>
             <div className="mt-2">
               <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                {user?.globalRole}
+                {user?.global_role}
               </span>
             </div>
           </div>
@@ -98,7 +99,7 @@ export default function AccountPage() {
           )}
 
           <div className="flex justify-between pt-4 border-t border-gray-100">
-             <button
+            <button
               type="submit"
               disabled={saving}
               className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70"
