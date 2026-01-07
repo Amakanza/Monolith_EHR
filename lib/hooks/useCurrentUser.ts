@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { CurrentUser } from '@/lib/types/auth';
+import type { UserProfile } from '@/lib/types/auth';
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Helper to re-fetch
