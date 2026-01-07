@@ -8,13 +8,18 @@ export default function AccountPage() {
   const { user, isLoading, mutate } = useCurrentUser();
   const router = useRouter();
 
+  // Keep local form state snake_case
   const [full_name, set_full_name] = useState('');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState({ type: '', text: '' });
+  const [msg, setMsg] = useState<{ type: 'success' | 'error' | ''; text: string }>({
+    type: '',
+    text: '',
+  });
 
+  // Sync state when user loads
   useEffect(() => {
-    if (user) {
-      set_full_name(user.full_name || '');
+    if (user?.profile) {
+      set_full_name(user.profile.fullName || '');
     }
   }, [user]);
 
@@ -33,12 +38,13 @@ export default function AccountPage() {
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        // Send snake_case to your API
         body: JSON.stringify({ full_name }),
       });
 
       if (!res.ok) throw new Error('Failed to update');
 
-      await mutate();
+      await mutate(); // Refresh local user state
       setMsg({ type: 'success', text: 'Profile updated successfully.' });
     } catch {
       setMsg({ type: 'error', text: 'An error occurred.' });
@@ -64,7 +70,7 @@ export default function AccountPage() {
               <input
                 type="email"
                 disabled
-                value={''}
+                value={user?.email || ''}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 bg-gray-100 sm:text-sm sm:leading-6 px-3"
               />
             </div>
@@ -86,7 +92,7 @@ export default function AccountPage() {
             <label className="block text-sm font-medium leading-6 text-gray-900">Global Role</label>
             <div className="mt-2">
               <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                {user?.global_role || 'standard_user'}
+                {user?.profile?.globalRole || 'standard_user'}
               </span>
             </div>
           </div>
