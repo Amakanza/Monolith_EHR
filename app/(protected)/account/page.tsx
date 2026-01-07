@@ -8,19 +8,15 @@ export default function AccountPage() {
   const { user, isLoading, mutate } = useCurrentUser();
   const router = useRouter();
 
-  // Keep local form state snake_case
-  const [full_name, set_full_name] = useState('');
+  const [fullName, setFullName] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error' | ''; text: string }>({
     type: '',
     text: '',
   });
 
-  // Sync state when user loads
   useEffect(() => {
-    if (user) {
-      set_full_name(user.full_name || '');
-    }
+    if (user) setFullName(user.fullName ?? '');
   }, [user]);
 
   const handleLogout = async () => {
@@ -38,7 +34,7 @@ export default function AccountPage() {
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name }),
+        body: JSON.stringify({ fullName }),
       });
 
       if (!res.ok) throw new Error('Failed to update');
@@ -53,6 +49,20 @@ export default function AccountPage() {
   };
 
   if (isLoading) return <div className="p-8">Loading profile...</div>;
+
+  if (!user) {
+    return (
+      <div className="p-8">
+        <p className="text-sm text-gray-600">You are not signed in.</p>
+        <button
+          onClick={() => router.push('/auth/login')}
+          className="mt-3 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white"
+        >
+          Go to login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow sm:rounded-lg">
@@ -69,8 +79,7 @@ export default function AccountPage() {
               <input
                 type="email"
                 disabled
-                value=""
-                placeholder="Email is not available in UserProfile yet"
+                value={user.email ?? ''}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 bg-gray-100 sm:text-sm sm:leading-6 px-3"
               />
             </div>
@@ -81,8 +90,8 @@ export default function AccountPage() {
             <div className="mt-2">
               <input
                 type="text"
-                value={full_name}
-                onChange={(e) => set_full_name(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
               />
             </div>
@@ -92,7 +101,7 @@ export default function AccountPage() {
             <label className="block text-sm font-medium leading-6 text-gray-900">Global Role</label>
             <div className="mt-2">
               <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                {user?.global_role || 'standard_user'}
+                {user.globalRole ?? 'standard_user'}
               </span>
             </div>
           </div>
