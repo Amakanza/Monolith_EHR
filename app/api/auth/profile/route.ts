@@ -4,10 +4,12 @@ import { NextResponse } from 'next/server';
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
+
     const profile = await upsertUserProfile({
-      fullName: body.fullName,
-      avatarUrl: body.avatarUrl,
+      full_name: body.full_name,
+      avatar_url: body.avatar_url,
     });
+
     return NextResponse.json({ profile });
   } catch (error: any) {
     return NextResponse.json(
