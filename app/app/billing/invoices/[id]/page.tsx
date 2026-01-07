@@ -8,9 +8,9 @@ import type { InvoiceWithItemsAndPayments } from '@/lib/types/billing';
 export default function InvoiceDetailPage() {
   const params = useParams();
   const rawId = (params as any)?.id as string | string[] | undefined;
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const invoiceId = Array.isArray(rawId) ? rawId[0] : rawId;
 
-  const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [data, setData] = useState<InvoiceWithItemsAndPayments | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Item form
@@ -24,24 +24,30 @@ export default function InvoiceDetailPage() {
   const [payMethod, setPayMethod] = useState('cash');
   const [addingPay, setAddingPay] = useState(false);
 
-  async function loadData(invoiceId: string) {
-    const res = await fetch(`/api/invoices/${invoiceId}`);
-    if (res.ok) setInvoice(await res.json());
+  async function loadData(id: string) {
+    setLoading(true);
+    const res = await fetch(`/api/invoices/${id}`);
+    if (res.ok) {
+      const json = (await res.json()) as InvoiceWithItemsAndPayments;
+      setData(json);
+    } else {
+      setData(null);
+    }
     setLoading(false);
   }
 
   useEffect(() => {
-    if (!id) return;
-    loadData(id);
+    if (!invoiceId) return;
+    loadData(invoiceId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [invoiceId]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!invoice) return;
+    if (!invoiceId) return;
 
     setAddingItem(true);
-    await fetch(`/api/invoices/${invoice.id}/line-items`, {
+    await fetch(`/api/invoices/${invoiceId}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -56,21 +62,23 @@ export default function InvoiceDetailPage() {
     setPrice(0);
     setAddingItem(false);
 
-    if (id) loadData(id);
+    loadData(invoiceId);
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    if (!invoiceId) return;
     if (!confirm('Delete item?')) return;
-    await fetch(`/api/line-items/${itemId}`, { method: 'DELETE' });
-    if (id) loadData(id);
+
+    await fetch(`/api/invoice-items/${itemId}`, { method: 'DELETE' });
+    loadData(invoiceId);
   };
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!invoice) return;
+    if (!invoiceId) return;
 
     setAddingPay(true);
-    await fetch(`/api/invoices/${invoice.id}/payments`, {
+    await fetch(`/api/invoices/${invoiceId}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -83,26 +91,28 @@ export default function InvoiceDetailPage() {
     setPayAmount(0);
     setAddingPay(false);
 
-    if (id) loadData(id);
+    loadData(invoiceId);
   };
 
-  if (loading || !invoice) return <div className="p-8">Loading...</div>;
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (!data) return <div className="p-8">Invoice not found.</div>;
+
+  const { invoice, items, payments } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex justify-between items-start">
         <div>
-          <Link
-            href="/app/billing/invoices"
-            className="text-sm text-gray-500 hover:text-gray-900"
-          >
+          <Link href="/app/billing/invoices" className="text-sm text-gray-500 hover:text-gray-900">
             &larr; Back
           </Link>
+
           <h1 className="text-3xl font-bold text-gray-900 mt-2">{invoice.invoiceNumber}</h1>
-          <p className="text-gray-500">
-            Patient: {invoice.patient?.firstName} {invoice.patient?.lastName}
-          </p>
+          {invoice.patientName ? (
+            <p className="text-gray-500">Patient: {invoice.patientName}</p>
+          ) : null}
         </div>
+
         <div className="text-right">
           <div className="text-sm text-gray-500">Status</div>
           <span
@@ -117,7 +127,6 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
         <div>
           <div className="text-sm text-gray-500">Total</div>
@@ -132,16 +141,16 @@ export default function InvoiceDetailPage() {
         <div>
           <div className="text-sm text-gray-500">Balance Due</div>
           <div className="text-xl font-bold text-red-600">
-            {(invoice.balanceCents / 100).toFixed(2)}
+            {(invoice.balanceDueCents / 100).toFixed(2)}
           </div>
         </div>
       </div>
 
-      {/* Items */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 font-semibold text-gray-700">
           Line Items
         </div>
+
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
@@ -157,11 +166,12 @@ export default function InvoiceDetailPage() {
               <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                 Total
               </th>
-              <th className="w-10"></th>
+              <th className="w-10" />
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-200">
-            {invoice.items.map((item) => (
+            {items.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-3 text-sm">{item.description}</td>
                 <td className="px-4 py-3 text-sm text-right">{item.quantity}</td>
@@ -169,22 +179,30 @@ export default function InvoiceDetailPage() {
                   {(item.unitPriceCents / 100).toFixed(2)}
                 </td>
                 <td className="px-4 py-3 text-sm text-right font-medium">
-                  {(item.totalCents / 100).toFixed(2)}
+                  {(item.lineSubtotalCents / 100).toFixed(2)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => handleDeleteItem(item.id)}
                     className="text-red-500 hover:text-red-700"
+                    aria-label="Delete item"
+                    title="Delete item"
                   >
                     ×
                   </button>
                 </td>
               </tr>
             ))}
+            {items.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-gray-500" colSpan={5}>
+                  No items yet.
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
 
-        {/* Add Item Form */}
         <form
           onSubmit={handleAddItem}
           className="bg-gray-50 p-4 border-t border-gray-200 flex gap-2 items-end"
@@ -198,64 +216,69 @@ export default function InvoiceDetailPage() {
               className="w-full rounded border-gray-300 p-2 text-sm"
             />
           </div>
+
           <div className="w-20">
             <input
               type="number"
               placeholder="Qty"
+              min={1}
               required
               value={qty}
               onChange={(e) => setQty(Number(e.target.value))}
               className="w-full rounded border-gray-300 p-2 text-sm"
             />
           </div>
+
           <div className="w-24">
             <input
               type="number"
               placeholder="Price"
-              required
               step="0.01"
+              min={0}
+              required
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
               className="w-full rounded border-gray-300 p-2 text-sm"
             />
           </div>
+
           <button
             type="submit"
             disabled={addingItem}
-            className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+            className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-60"
           >
             Add
           </button>
         </form>
       </div>
 
-      {/* Payments */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 font-semibold text-gray-700">
           Payments
         </div>
+
         <ul className="divide-y divide-gray-200">
-          {invoice.payments.length === 0 && (
+          {payments.length === 0 ? (
             <li className="p-4 text-sm text-gray-500 text-center">No payments recorded.</li>
+          ) : (
+            payments.map((p) => (
+              <li key={p.id} className="px-4 py-3 flex justify-between items-center">
+                <div className="text-sm">
+                  <span className="font-medium">{p.method}</span>
+                  <span className="text-gray-500 mx-2">•</span>
+                  <span className="text-gray-500">{p.paymentDate}</span>
+                  {p.reference ? (
+                    <span className="text-gray-400 text-xs ml-2">({p.reference})</span>
+                  ) : null}
+                </div>
+                <div className="text-sm font-medium text-green-700">
+                  -{(p.amountCents / 100).toFixed(2)}
+                </div>
+              </li>
+            ))
           )}
-          {invoice.payments.map((p) => (
-            <li key={p.id} className="px-4 py-3 flex justify-between items-center">
-              <div className="text-sm">
-                <span className="font-medium">{p.method}</span>
-                <span className="text-gray-500 mx-2">•</span>
-                <span className="text-gray-500">
-                  {new Date(p.paymentDate).toLocaleDateString()}
-                </span>
-                {p.reference && <span className="text-gray-400 text-xs ml-2">({p.reference})</span>}
-              </div>
-              <div className="text-sm font-medium text-green-700">
-                -{(p.amountCents / 100).toFixed(2)}
-              </div>
-            </li>
-          ))}
         </ul>
 
-        {/* Add Payment Form */}
         <form
           onSubmit={handlePayment}
           className="bg-gray-50 p-4 border-t border-gray-200 flex gap-2 items-end"
@@ -270,23 +293,27 @@ export default function InvoiceDetailPage() {
               <option value="card">Card</option>
               <option value="eft">EFT</option>
               <option value="medical_aid">Medical Aid</option>
+              <option value="other">Other</option>
             </select>
           </div>
+
           <div className="w-32">
             <input
               type="number"
               placeholder="Amount"
               step="0.01"
+              min={0}
               required
               value={payAmount}
               onChange={(e) => setPayAmount(Number(e.target.value))}
               className="w-full rounded border-gray-300 p-2 text-sm"
             />
           </div>
+
           <button
             type="submit"
             disabled={addingPay}
-            className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
+            className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-60"
           >
             Record Payment
           </button>
