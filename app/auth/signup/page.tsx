@@ -28,8 +28,8 @@ export default function SignupPage() {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Redirect to dashboard on success
-      router.push('/dashboard');
+      // Redirect to account on success
+      router.push('/account');
       router.refresh(); // Refresh server components
     } catch (err: any) {
       setError(err.message);

@@ -113,7 +113,7 @@ export async function getCurrentUserServer(): Promise<CurrentUser | null> {
 export async function ensureAuthenticatedServer(): Promise<CurrentUser> {
   const user = await getCurrentUserServer();
   if (!user) {
-    redirect('/auth/login');
+    redirect('/login');
   }
   return user;
 }

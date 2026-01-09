@@ -21,7 +21,7 @@ export default function AccountPage() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/auth/login');
+    router.push('/login');
     router.refresh();
   };
 
@@ -55,7 +55,7 @@ export default function AccountPage() {
       <div className="p-8">
         <p className="text-sm text-gray-600">You are not signed in.</p>
         <button
-          onClick={() => router.push('/auth/login')}
+          onClick={() => router.push('/login')}
           className="mt-3 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white"
         >
           Go to login

@@ -19,11 +19,11 @@ export default async function ProtectedLayout({
           <div className="flex h-16 justify-between">
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
-                <Link href="/dashboard" className="font-bold text-xl text-indigo-600">MediCore</Link>
+                <Link href="/account" className="font-bold text-xl text-indigo-600">MediCore</Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  href="/dashboard"
+                  href="/account"
                   className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
                   Dashboard

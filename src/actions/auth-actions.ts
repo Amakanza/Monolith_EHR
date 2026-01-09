@@ -28,7 +28,7 @@ export async function loginAction(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect('/app');
+  redirect('/account');
 }
 
 export async function signupAction(formData: FormData) {
@@ -49,7 +49,7 @@ export async function signupAction(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect('/app/onboarding');
+  redirect('/account');
 }
 
 export async function logoutAction() {

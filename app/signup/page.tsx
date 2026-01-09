@@ -28,7 +28,7 @@ export default function SignupPage() {
       setLoading(false);
     } else {
       router.refresh();
-      router.push('/app');
+      router.push('/account');
     }
   };
 

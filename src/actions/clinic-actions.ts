@@ -31,5 +31,5 @@ export async function createClinicAction(formData: FormData) {
     return { error: e.message };
   }
 
-  redirect('/app');
+  redirect('/account');
 }
