@@ -36,16 +36,37 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   const { data: { user } } = await supabase.auth.getUser();
   console.log('listMyClinics auth user:', user);
   
+  if (!user) {
+    console.error('User not authenticated in listMyClinics');
+    throw new Error('Not authenticated');
+  }
+
+  // Explicit JOIN with clinic_memberships to bypass RLS timing issues
   const { data, error } = await supabase
     .from('clinics')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select(`
+      *,
+      clinic_memberships!inner(
+        user_id,
+        role
+      )
+    `)
+    .eq('clinic_memberships.user_id', user.id)
+    .order('clinics.created_at', { ascending: false });
 
   console.log('listMyClinics query result:', { data, error });
 
   if (error) {
     console.error('listMyClinics error:', error);
-    throw new Error(error.message);
+    
+    // Provide more specific error messages
+    if (error.code === 'PGRST116') {
+      throw new Error('Invalid query format in clinics listing');
+    } else if (error.code === '42501') {
+      throw new Error('Permission denied accessing clinics');
+    } else {
+      throw new Error(`Failed to fetch clinics: ${error.message}`);
+    }
   }
   
   const result = { clinics: data.map(mapClinic) };
@@ -65,41 +86,47 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
     throw new Error('Not authenticated');
   }
 
-  // 1. Fetch Clinic (RLS ensures we can only see it if we are a member)
+  // 1. Fetch Clinic with explicit JOIN to clinic_memberships
   console.log('Fetching clinic with user_id:', user.id);
   const { data: clinicData, error: clinicError } = await supabase
     .from('clinics')
-    .select('*')
+    .select(`
+      *,
+      clinic_memberships!inner(
+        user_id,
+        role
+      )
+    `)
     .eq('id', clinicId)
+    .eq('clinic_memberships.user_id', user.id)
     .single();
 
   console.log('Clinic query result:', { clinicData, error: clinicError });
 
   if (clinicError || !clinicData) {
     console.error('Clinic not found or access denied:', clinicError);
-    throw new Error('Clinic not found or access denied');
+    
+    // Provide specific error messages
+    if (clinicError?.code === 'PGRST116') {
+      throw new Error('Invalid clinic ID format');
+    } else if (clinicError?.code === '42501') {
+      throw new Error('Permission denied: You do not have access to this clinic');
+    } else if (clinicError?.code === 'PGRST116') {
+      throw new Error('Clinic not found');
+    } else {
+      throw new Error('Clinic not found or access denied');
+    }
   }
 
-  // 2. Fetch My Role
-  console.log('Fetching membership for clinic_id:', clinicId, 'user_id:', user.id);
-  const { data: memberData, error: memberError } = await supabase
-    .from('clinic_memberships')
-    .select('role')
-    .eq('clinic_id', clinicId)
-    .eq('user_id', user.id)
-    .single();
-
-  console.log('Membership query result:', { memberData, error: memberError });
-
-  if (memberError || !memberData) {
-    // Should not happen if RLS allowed seeing the clinic, but good to check
-    console.error('Membership verification failed:', memberError);
-    throw new Error('Membership verification failed');
-  }
+  // Extract role from the joined data
+  const role = (clinicData as any).clinic_memberships?.role;
+  
+  // Clean up the clinic data for mapping
+  const { clinic_memberships, ...cleanClinicData } = clinicData as any;
 
   const result = { 
-    clinic: mapClinic(clinicData),
-    myRole: memberData.role as ClinicRole
+    clinic: mapClinic(cleanClinicData),
+    myRole: role as ClinicRole
   };
   
   console.log('getClinicById returning:', result);
