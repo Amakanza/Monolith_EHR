@@ -14,7 +14,7 @@ function mapClinic(row: any): Clinic {
 }
 
 export async function createClinic(input: { name: string; timezone?: string }): Promise<{ clinic: Clinic }> {
-  const supabase = await createClient();
+  const supabase = createClient();
   
   // Use the RPC function for transactional creation (clinic + owner membership)
   const { data, error } = await supabase.rpc('create_clinic_with_owner', {
@@ -29,7 +29,7 @@ export async function createClinic(input: { name: string; timezone?: string }): 
 }
 
 export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
-  const supabase = await createClient();
+  const supabase = createClient();
   
   const { data, error } = await supabase
     .from('clinics')
@@ -42,7 +42,7 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
 }
 
 export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic; myRole: ClinicRole }> {
-  const supabase = await createClient();
+  const supabase = createClient();
   
   // 1. Fetch Clinic (RLS ensures we can only see it if we are a member)
   const { data: clinicData, error: clinicError } = await supabase
@@ -78,7 +78,7 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
 }
 
 export async function setActiveClinic(clinicId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -101,7 +101,7 @@ export async function setActiveClinic(clinicId: string): Promise<void> {
 }
 
 export async function getActiveClinic(): Promise<string | null> {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
@@ -117,7 +117,7 @@ export async function getActiveClinic(): Promise<string | null> {
 // --- Membership Management ---
 
 export async function listClinicMembers(clinicId: string): Promise<{ members: ClinicMemberProfile[] }> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('clinic_memberships')
@@ -149,7 +149,7 @@ export async function listClinicMembers(clinicId: string): Promise<{ members: Cl
 }
 
 export async function addClinicMember(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createClient();
   
   // Note: Ensure the caller is admin/owner via RLS/Policy, but service methods usually imply trusted context?
   // No, Supabase RLS is the ultimate guard. We just attempt the insert.
@@ -169,7 +169,7 @@ export async function addClinicMember(input: { clinicId: string; userId: string;
 }
 
 export async function updateClinicMemberRole(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('clinic_memberships')
@@ -181,7 +181,7 @@ export async function updateClinicMemberRole(input: { clinicId: string; userId: 
 }
 
 export async function removeClinicMember(input: { clinicId: string; userId: string }): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('clinic_memberships')
