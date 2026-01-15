@@ -29,36 +29,59 @@ export async function createClinic(input: { name: string; timezone?: string }): 
 }
 
 export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
+  console.log('listMyClinics called');
   const supabase = createClient();
+  
+  // Check auth first
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('listMyClinics auth user:', user);
   
   const { data, error } = await supabase
     .from('clinics')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(error.message);
+  console.log('listMyClinics query result:', { data, error });
+
+  if (error) {
+    console.error('listMyClinics error:', error);
+    throw new Error(error.message);
+  }
   
-  return { clinics: data.map(mapClinic) };
+  const result = { clinics: data.map(mapClinic) };
+  console.log('listMyClinics returning:', result);
+  return result;
 }
 
 export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic; myRole: ClinicRole }> {
+  console.log('getClinicById called with clinicId:', clinicId);
   const supabase = createClient();
   
+  // Check auth first
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('Auth user:', user);
+  if (!user) {
+    console.error('Not authenticated');
+    throw new Error('Not authenticated');
+  }
+
   // 1. Fetch Clinic (RLS ensures we can only see it if we are a member)
+  console.log('Fetching clinic with user_id:', user.id);
   const { data: clinicData, error: clinicError } = await supabase
     .from('clinics')
     .select('*')
     .eq('id', clinicId)
     .single();
 
+  console.log('Clinic query result:', { clinicData, error: clinicError });
+
   if (clinicError || !clinicData) {
+    console.error('Clinic not found or access denied:', clinicError);
     throw new Error('Clinic not found or access denied');
   }
 
   // 2. Fetch My Role
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
+  console.log('Fetching membership for clinic_id:', clinicId, 'user_id:', user.id);
   const { data: memberData, error: memberError } = await supabase
     .from('clinic_memberships')
     .select('role')
@@ -66,15 +89,21 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
     .eq('user_id', user.id)
     .single();
 
+  console.log('Membership query result:', { memberData, error: memberError });
+
   if (memberError || !memberData) {
     // Should not happen if RLS allowed seeing the clinic, but good to check
+    console.error('Membership verification failed:', memberError);
     throw new Error('Membership verification failed');
   }
 
-  return { 
+  const result = { 
     clinic: mapClinic(clinicData),
     myRole: memberData.role as ClinicRole
   };
+  
+  console.log('getClinicById returning:', result);
+  return result;
 }
 
 export async function setActiveClinic(clinicId: string): Promise<void> {
