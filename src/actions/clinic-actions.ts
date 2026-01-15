@@ -7,9 +7,6 @@ import { z } from 'zod';
 
 const createClinicSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  slug: z.string()
-    .min(3, "Slug must be at least 3 characters")
-    .regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
 });
 
 export async function createClinicAction(formData: FormData) {
@@ -23,7 +20,7 @@ export async function createClinicAction(formData: FormData) {
   }
 
   try {
-    await createClinicService(user.id, parsed.data.name, parsed.data.slug);
+    await createClinicService(user.id, parsed.data.name);
   } catch (e: any) {
     if (e.code === '23505') { // Unique violation for slug
       return { error: 'This URL identifier is already taken.' };

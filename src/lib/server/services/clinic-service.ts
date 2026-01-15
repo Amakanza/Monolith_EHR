@@ -1,13 +1,13 @@
 import 'server-only';
 import { createClient } from '@/lib/server/supabase/server';
 
-export async function createClinicService(userId: string, name: string, slug: string) {
+export async function createClinicService(userId: string, name: string) {
   const supabase = createClient();
   
   // 1. Create Clinic
   const { data: clinic, error: clinicError } = await supabase
     .from('clinics')
-    .insert({ name, slug })
+    .insert({ name, timezone: 'Africa/Windhoek' })
     .select('id')
     .single();
 

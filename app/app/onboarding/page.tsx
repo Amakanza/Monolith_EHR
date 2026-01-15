@@ -35,17 +35,7 @@ export default function OnboardingPage() {
             placeholder="My Physio Practice" 
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium">URL Identifier (Slug)</label>
-          <input 
-            name="slug" 
-            type="text" 
-            required 
-            className="mt-1 block w-full rounded border p-2" 
-            placeholder="my-physio-practice" 
-          />
-          <p className="text-xs text-gray-500 mt-1">Used for your public booking URL. Lowercase letters, numbers, and dashes only.</p>
-        </div>
+        
         
         {error && (
           <div className="rounded bg-red-50 p-2 text-sm text-red-600">
