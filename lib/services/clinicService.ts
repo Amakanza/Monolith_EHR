@@ -59,12 +59,58 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   console.log('listMyClinics called');
   const supabase = createClient();
   
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log('listMyClinics auth user:', user);
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log('listMyClinics auth check:', { user, authError });
+  
+  if (authError) {
+    console.error('Authentication error in listMyClinics:', authError);
+    throw new Error(`Authentication failed: ${authError.message}`);
+  }
   
   if (!user) {
     console.error('User not authenticated in listMyClinics');
-    throw new Error('Not authenticated');
+    throw new Error('Not authenticated: No user found');
+  }
+  
+  // Check if user has a profile
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('id, active_clinic_id, full_name')
+    .eq('id', user.id)
+    .single();
+  
+  console.log('listMyClinics user profile check:', { profile, profileError });
+  
+  if (profileError) {
+    console.error('User profile error in listMyClinics:', profileError);
+    if (profileError.code === 'PGRST116') {
+      throw new Error('User profile not found. Please complete your profile setup.');
+    }
+    throw new Error(`Profile error: ${profileError.message}`);
+  }
+  
+  // If user has a profile but no active clinic, that's okay - they might need to create or join one
+  if (profile && !profile.active_clinic_id) {
+    console.log('User has profile but no active clinic set');
+  }
+
+// First, let's check if the user has any clinic memberships at all
+  const { data: membershipsData, error: membershipsError } = await supabase
+    .from('clinic_memberships')
+    .select('clinic_id, role')
+    .eq('user_id', user.id);
+    
+  console.log('listMyClinics memberships check:', { membershipsData, membershipsError });
+  
+  if (membershipsError) {
+    console.error('Membership check error:', membershipsError);
+    throw new Error(`Error checking clinic memberships: ${membershipsError.message}`);
+  }
+  
+  if (!membershipsData || membershipsData.length === 0) {
+    console.log('User has no clinic memberships');
+    return { clinics: [] }; // Return empty array instead of error
   }
 
   // Use the exact SQL structure specified in requirements with inner join
@@ -86,11 +132,20 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
     .eq('clinic_memberships.user_id', user.id)
     .order('created_at', { ascending: false });
 
-  console.log('listMyClinics query result:', { finalData, finalError });
+  console.log('listMyClinics clinics query result:', { finalData, finalError, count: finalData?.length });
 
   if (finalError) {
-    console.error('listMyClinics error:', finalError);
-    throw new Error(`Failed to fetch clinics: ${finalError.message}`);
+    console.error('listMyClinics database error:', finalError);
+    
+    // Provide more specific error messages based on the error type
+    if (finalError.code === 'PGRST301') {
+      throw new Error('Access denied: You do not have permission to view clinics');
+    }
+    if (finalError.code === 'PGRST116') {
+      throw new Error('Clinics not found. You may need to join or create a clinic first.');
+    }
+    
+    throw new Error(`Database error: ${finalError.message}`);
   }
   
   // Map the results, extracting clinic data from the joined structure

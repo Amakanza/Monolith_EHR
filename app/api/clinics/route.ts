@@ -7,7 +7,22 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('API GET /clinics error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    // Return appropriate status codes based on error type
+    let statusCode = 500;
+    if (error.message.includes('Not authenticated')) {
+      statusCode = 401;
+    } else if (error.message.includes('User profile not found')) {
+      statusCode = 422; // Unprocessable Entity
+    } else if (error.message.includes('No clinics found') || error.message.includes('Access denied')) {
+      statusCode = 404;
+    }
+    
+    return NextResponse.json({ 
+      error: error.message,
+      type: error.constructor.name,
+      statusCode 
+    }, { status: statusCode });
   }
 }
 

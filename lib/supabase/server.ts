@@ -1,5 +1,4 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-// @ts-ignore
 import { cookies } from 'next/headers';
 
 export function createClient() {

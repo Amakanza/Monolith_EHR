@@ -13,17 +13,30 @@ export default function ActiveClinicSwitcher({
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(currentActiveId || '');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchClinics() {
       try {
+        setError(null);
         const res = await fetch('/api/clinics');
-        if (res.ok) {
-          const data = await res.json();
-          setClinics(data.clinics);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          const errorMessage = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
+          throw new Error(errorMessage);
+        }
+        
+        const data = await res.json();
+        setClinics(data.clinics || []);
+        
+        if (!data.clinics || data.clinics.length === 0) {
+          setError('No clinics found. You may need to create a clinic first.');
         }
       } catch (e) {
-        console.error('Failed to load clinics');
+        console.error('Failed to load clinics:', e);
+        const errorMessage = e instanceof Error ? e.message : 'Failed to load clinics';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -58,6 +71,15 @@ export default function ActiveClinicSwitcher({
   };
 
   if (loading) return <span className="text-xs text-gray-500">Loading clinics...</span>;
+
+  if (error) {
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="text-sm font-medium text-red-600">Error:</span>
+        <span className="text-xs text-red-500">{error}</span>
+      </div>
+    );
+  }
 
   if (clinics.length === 0) {
     return <span className="text-xs text-gray-400">No clinics found</span>;
