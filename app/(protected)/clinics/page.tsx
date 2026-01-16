@@ -77,7 +77,7 @@ export default function ClinicsListPage() {
 
       {clinics.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
-          <p className="text-gray-500">You don't belong to any clinics yet.</p>
+          <p className="text-gray-500">You don&apos;t belong to any clinics yet.</p>
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">

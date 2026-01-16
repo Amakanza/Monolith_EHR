@@ -9,7 +9,7 @@ export default async function PatientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Patients</h1>
-          <p className="text-sm text-gray-500">Manage your clinic's patient records.</p>
+          <p className="text-sm text-gray-500">Manage your clinic&apos;s patient records.</p>
         </div>
         <Link 
           href="/app/patients/new" 

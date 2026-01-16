@@ -137,7 +137,7 @@ export default function NewSessionPage() {
           </label>
         </div>
         <p className="text-xs text-gray-500 ml-6 -mt-4">
-          Creates a unique token URL so the patient doesn't need the raw meeting link immediately.
+          Creates a unique token URL so the patient doesn&apos;t need the raw meeting link immediately.
         </p>
 
         <div className="flex justify-end pt-4">

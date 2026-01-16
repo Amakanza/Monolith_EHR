@@ -49,7 +49,7 @@ export default function NewPatientPage() {
       
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">New Patient</h1>
-        <p className="mt-1 text-sm text-gray-500">Enter the patient's basic information.</p>
+        <p className="mt-1 text-sm text-gray-500">Enter the patient&apos;s basic information.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
