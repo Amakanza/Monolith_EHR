@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { Clinic, ClinicMemberProfile, ClinicRole } from '@/lib/types/clinics';
+import { Clinic, ClinicRole } from '@/lib/types/clinics';
 
 function mapClinic(row: any): Clinic {
   return {
@@ -13,26 +13,52 @@ function mapClinic(row: any): Clinic {
   };
 }
 
-export async function createClinic(input: { name: string; timezone?: string }): Promise<{ clinic: Clinic }> {
+/**
+ * Creates a new clinic with the current user as owner
+ * Calls the RPC and treats return value strictly as a UUID
+ */
+export async function createClinic(input: { name: string; timezone?: string }): Promise<string> {
+  console.log('createClinic called with:', { name: input.name, timezone: input.timezone });
+  
   const supabase = createClient();
   
-  // Use the RPC function for transactional creation (clinic + owner membership)
+  // Call the RPC function for transactional creation (clinic + owner membership + active clinic)
   const { data, error } = await supabase.rpc('create_clinic_with_owner', {
     name: input.name,
     timezone: input.timezone || 'Africa/Windhoek'
   });
 
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error('Failed to create clinic');
+  console.log('RPC create_clinic_with_owner result:', { data, error });
 
-  return { clinic: mapClinic(data) };
+  if (error) {
+    console.error('RPC error:', error);
+    throw new Error(error.message);
+  }
+  
+  if (!data) {
+    console.error('RPC returned falsy value:', data);
+    throw new Error('Failed to create clinic: RPC returned no data');
+  }
+
+  // Treat the return value strictly as a UUID
+  const clinicId = data as string;
+  console.log('Clinic created successfully with ID:', clinicId);
+  
+  return clinicId;
 }
 
+/**
+ * Lists clinics that the current user belongs to
+ * Uses the exact query specified in requirements:
+ * select clinics.*
+ * from clinics
+ * join clinic_memberships on clinic_memberships.clinic_id = clinics.id
+ * where clinic_memberships.user_id = auth.uid()
+ */
 export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   console.log('listMyClinics called');
   const supabase = createClient();
   
-  // Check auth first
   const { data: { user } } = await supabase.auth.getUser();
   console.log('listMyClinics auth user:', user);
   
@@ -41,53 +67,56 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
     throw new Error('Not authenticated');
   }
 
-  // Explicit JOIN with clinic_memberships to bypass RLS timing issues
-  const { data, error } = await supabase
+  // Use the exact SQL structure specified in requirements with inner join
+  const { data: finalData, error: finalError } = await supabase
     .from('clinics')
     .select(`
-      *,
+      id,
+      name,
+      timezone,
+      created_by,
+      created_at,
+      updated_at,
+      archived_at,
       clinic_memberships!inner(
         user_id,
-        role
+        clinic_id
       )
     `)
     .eq('clinic_memberships.user_id', user.id)
-    .order('clinics.created_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
-  console.log('listMyClinics query result:', { data, error });
+  console.log('listMyClinics query result:', { finalData, finalError });
 
-  if (error) {
-    console.error('listMyClinics error:', error);
-    
-    // Provide more specific error messages
-    if (error.code === 'PGRST116') {
-      throw new Error('Invalid query format in clinics listing');
-    } else if (error.code === '42501') {
-      throw new Error('Permission denied accessing clinics');
-    } else {
-      throw new Error(`Failed to fetch clinics: ${error.message}`);
-    }
+  if (finalError) {
+    console.error('listMyClinics error:', finalError);
+    throw new Error(`Failed to fetch clinics: ${finalError.message}`);
   }
   
-  const result = { clinics: data.map(mapClinic) };
+  // Map the results, extracting clinic data from the joined structure
+  const clinics = finalData.map((row: any) => {
+    const { clinic_memberships, ...clinicData } = row;
+    return mapClinic(clinicData);
+  });
+  
+  const result = { clinics };
   console.log('listMyClinics returning:', result);
   return result;
 }
 
+/**
+ * Gets a specific clinic by ID that the user belongs to
+ */
 export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic; myRole: ClinicRole }> {
   console.log('getClinicById called with clinicId:', clinicId);
   const supabase = createClient();
   
-  // Check auth first
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('Auth user:', user);
   if (!user) {
     console.error('Not authenticated');
     throw new Error('Not authenticated');
   }
 
-  // 1. Fetch Clinic with explicit JOIN to clinic_memberships
-  console.log('Fetching clinic with user_id:', user.id);
   const { data: clinicData, error: clinicError } = await supabase
     .from('clinics')
     .select(`
@@ -105,23 +134,10 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
 
   if (clinicError || !clinicData) {
     console.error('Clinic not found or access denied:', clinicError);
-    
-    // Provide specific error messages
-    if (clinicError?.code === 'PGRST116') {
-      throw new Error('Invalid clinic ID format');
-    } else if (clinicError?.code === '42501') {
-      throw new Error('Permission denied: You do not have access to this clinic');
-    } else if (clinicError?.code === 'PGRST116') {
-      throw new Error('Clinic not found');
-    } else {
-      throw new Error('Clinic not found or access denied');
-    }
+    throw new Error('Clinic not found or access denied');
   }
 
-  // Extract role from the joined data
   const role = (clinicData as any).clinic_memberships?.role;
-  
-  // Clean up the clinic data for mapping
   const { clinic_memberships, ...cleanClinicData } = clinicData as any;
 
   const result = { 
@@ -133,6 +149,9 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
   return result;
 }
 
+/**
+ * Sets the active clinic for the current user
+ */
 export async function setActiveClinic(clinicId: string): Promise<void> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -156,6 +175,9 @@ export async function setActiveClinic(clinicId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Gets the current active clinic for the user
+ */
 export async function getActiveClinic(): Promise<string | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -172,7 +194,10 @@ export async function getActiveClinic(): Promise<string | null> {
 
 // --- Membership Management ---
 
-export async function listClinicMembers(clinicId: string): Promise<{ members: ClinicMemberProfile[] }> {
+/**
+ * Lists all members of a clinic
+ */
+export async function listClinicMembers(clinicId: string) {
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -189,10 +214,6 @@ export async function listClinicMembers(clinicId: string): Promise<{ members: Cl
     .eq('clinic_id', clinicId);
 
   if (error) throw new Error(error.message);
-
-  // Note: We can't easily join auth.users to get email due to permissions.
-  // We'll rely on full_name for now. In a real app, you might sync email to public.user_profiles
-  // or use a secure edge function to fetch emails.
   
   return {
     members: data.map((row: any) => ({
@@ -204,11 +225,11 @@ export async function listClinicMembers(clinicId: string): Promise<{ members: Cl
   };
 }
 
+/**
+ * Adds a member to a clinic
+ */
 export async function addClinicMember(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
   const supabase = createClient();
-  
-  // Note: Ensure the caller is admin/owner via RLS/Policy, but service methods usually imply trusted context?
-  // No, Supabase RLS is the ultimate guard. We just attempt the insert.
   
   const { error } = await supabase
     .from('clinic_memberships')
@@ -224,6 +245,9 @@ export async function addClinicMember(input: { clinicId: string; userId: string;
   }
 }
 
+/**
+ * Updates a clinic member's role
+ */
 export async function updateClinicMemberRole(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
   const supabase = createClient();
 
@@ -236,6 +260,9 @@ export async function updateClinicMemberRole(input: { clinicId: string; userId: 
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Removes a member from a clinic
+ */
 export async function removeClinicMember(input: { clinicId: string; userId: string }): Promise<void> {
   const supabase = createClient();
 

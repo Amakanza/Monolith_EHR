@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/server/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { getActiveClinic } from '@/lib/server/clinic/get-active-clinic';
 import { z } from 'zod';
 

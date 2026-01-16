@@ -6,6 +6,7 @@ export async function GET() {
     const result = await listMyClinics();
     return NextResponse.json(result);
   } catch (error: any) {
+    console.error('API GET /clinics error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -17,12 +18,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const result = await createClinic({
+    // createClinic now returns only a UUID string
+    const clinicId = await createClinic({
       name: body.name,
       timezone: body.timezone,
     });
-    return NextResponse.json(result, { status: 201 });
+    
+    console.log('API: Clinic created successfully with ID:', clinicId);
+    return NextResponse.json({ clinicId }, { status: 201 });
   } catch (error: any) {
+    console.error('API POST /clinics error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

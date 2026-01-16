@@ -1,5 +1,5 @@
 import { requireUser } from '@/lib/server/auth/require-user';
-import { createClient } from '@/lib/server/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import type { DBUserProfile } from '@/lib/types/auth';
 
 export default async function DashboardPage() {

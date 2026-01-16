@@ -9,31 +9,50 @@ export default function ClinicsListPage() {
   const router = useRouter();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    async function load() {
+    async function loadClinics() {
       try {
-        const res = await fetch('/api/clinics');
-        const data = await res.json();
-        if (res.ok) setClinics(data.clinics);
-      } catch (e) {
-        console.error(e);
+        setLoading(true);
+        setError('');
+        
+        const response = await fetch('/api/clinics');
+        if (!response.ok) {
+          throw new Error('Failed to fetch clinics');
+        }
+        
+        const result = await response.json();
+        setClinics(result.clinics || []);
+      } catch (e: any) {
+        console.error('Failed to load clinics:', e);
+        setError(e.message || 'Failed to load clinics');
       } finally {
         setLoading(false);
       }
     }
-    load();
+    loadClinics();
   }, []);
 
   const handleOpen = async (clinicId: string) => {
-    // Set as active then navigate
-    await fetch('/api/clinics/active', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clinicId }),
-    });
-    router.push(`/clinics/${clinicId}`);
-    router.refresh();
+    try {
+      // Set as active then navigate
+      const response = await fetch('/api/clinics/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to set active clinic');
+      }
+      
+      router.push(`/clinics/${clinicId}`);
+      router.refresh();
+    } catch (e: any) {
+      console.error('Failed to open clinic:', e);
+      setError(e.message || 'Failed to open clinic');
+    }
   };
 
   if (loading) return <div className="p-8">Loading clinics...</div>;
@@ -49,6 +68,12 @@ export default function ClinicsListPage() {
           Create Clinic
         </Link>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-red-50 p-4 rounded text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {clinics.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">

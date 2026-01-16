@@ -1,7 +1,7 @@
 
 import 'server-only';
-import { createClient } from '@/lib/server/supabase/server';
-import { createServiceClient } from '@/lib/server/supabase/service';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getActiveClinic } from '@/lib/server/clinic/get-active-clinic';
 import { randomBytes, createHash } from 'crypto';
 import { z } from 'zod';
@@ -73,7 +73,7 @@ export async function getSessionByAppointment(appointmentId: string) {
 }
 
 export async function verifyJoinToken(token: string) {
-  const supabase = createServiceClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('telehealth_sessions')
@@ -95,7 +95,7 @@ export async function verifyJoinToken(token: string) {
 }
 
 export async function logJoin(params: { token: string; userAgent: string; ip: string }) {
-  const supabase = createServiceClient();
+  const supabase = createAdminClient();
   
   // Retrieve session ID first (to link log)
   const { data: session } = await supabase

@@ -1,6 +1,6 @@
 
 import 'server-only';
-import { createClient } from '@/lib/server/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '../auth/require-user';
 import { redirect } from 'next/navigation';
 

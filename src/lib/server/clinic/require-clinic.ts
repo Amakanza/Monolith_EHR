@@ -1,6 +1,6 @@
 import 'server-only';
 import { getActiveClinic } from './get-active-clinic';
-import { createClient } from '@/lib/server/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export async function requireClinic() {

@@ -16,27 +16,19 @@ export default function NewClinicPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/clinics', {
+      const response = await fetch('/api/clinics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, timezone }),
       });
       
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create clinic');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create clinic');
       }
-
-      const { clinic } = await res.json();
       
-      // Set as active
-      await fetch('/api/clinics/active', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId: clinic.id }),
-      });
-
-      router.push(`/clinics/${clinic.id}`);
+      // Redirect to clinics list and refresh
+      router.push('/clinics');
       router.refresh();
     } catch (err: any) {
       setError(err.message);

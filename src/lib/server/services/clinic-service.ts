@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/server/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function createClinicService(userId: string, name: string) {
   const supabase = createClient();
