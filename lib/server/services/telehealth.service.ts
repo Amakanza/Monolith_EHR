@@ -16,12 +16,52 @@ export async function createSession() {
   return {};
 }
 
-export async function updateSession() {
+export async function verifyJoinToken(input?: any) {
   // Placeholder implementation
   return {};
 }
 
-export async function deleteSession() {
+export async function logJoin(input?: any) {
   // Placeholder implementation
   return {};
+}
+
+export async function createSession(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function updateSession(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function verifyJoinToken(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function logJoin(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function createSession(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function updateSession(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function deleteSession(input?: any) {
+  // Placeholder implementation
+  return {};
+}
+
+export async function getSessionByAppointment(appointmentId: string) {
+  // Placeholder implementation
+  return null;
 }

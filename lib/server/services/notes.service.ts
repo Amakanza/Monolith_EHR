@@ -6,17 +6,17 @@ export async function listNotes() {
   return [];
 }
 
-export async function createNote() {
+export async function createNote(input?: any) {
   // Placeholder implementation
   return {};
 }
 
-export async function updateNote() {
+export async function updateNote(input?: any) {
   // Placeholder implementation
   return {};
 }
 
-export async function deleteNote() {
+export async function deleteNote(input?: any) {
   // Placeholder implementation
   return {};
 }

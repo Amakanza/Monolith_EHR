@@ -6,17 +6,17 @@ export async function listInvoices() {
   return [];
 }
 
-export async function createInvoice() {
+export async function createInvoice(input?: any) {
   // Placeholder implementation
   return {};
 }
 
-export async function addLineItem() {
+export async function addLineItem(input?: any) {
   // Placeholder implementation
   return {};
 }
 
-export async function deleteLineItem() {
+export async function deleteLineItem(input?: any) {
   // Placeholder implementation
   return {};
 }

@@ -6,6 +6,12 @@ export async function getNotifications() {
   return [];
 }
 
+export async function listNotifications() {
+  const user = await ensureAuthenticatedServer();
+  // Placeholder implementation
+  return [];
+}
+
 export async function markNotificationRead() {
   // Placeholder implementation
   return {};
