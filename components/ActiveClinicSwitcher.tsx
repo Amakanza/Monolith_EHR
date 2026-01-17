@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClinic } from '@/src/contexts/ClinicContext';
+import { Clinic } from '@/lib/types/clinics';
 
 export default function ActiveClinicSwitcher({ 
   currentActiveId 
@@ -10,46 +10,54 @@ export default function ActiveClinicSwitcher({
   currentActiveId?: string | null 
 }) {
   const router = useRouter();
-  const {
-    clinics,
-    activeClinicId,
-    loading,
-    error,
-    setActiveClinic,
-    clearError
-  } = useClinic();
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(currentActiveId || '');
+
+  useEffect(() => {
+    async function fetchClinics() {
+      try {
+        const res = await fetch('/api/clinics');
+        if (res.ok) {
+          const data = await res.json();
+          setClinics(data.clinics);
+        }
+      } catch (e) {
+        console.error('Failed to load clinics');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClinics();
+  }, []);
+
+  useEffect(() => {
+    if (currentActiveId) setActiveId(currentActiveId);
+  }, [currentActiveId]);
 
   const handleSwitch = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newId = e.target.value;
     if (!newId) return;
 
-    clearError();
-    const success = await setActiveClinic(newId);
-    
-    if (success) {
-      router.refresh();
+    try {
+      const res = await fetch('/api/clinics/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId: newId }),
+      });
+
+      if (res.ok) {
+        setActiveId(newId);
+        router.refresh();
+        // Optional: Redirect to dashboard if on a clinic-specific page
+        // router.push(`/clinics/${newId}`);
+      }
+    } catch (error) {
+      console.error('Failed to switch clinic');
     }
   };
 
-  // Sync server-side active clinic with context
-  React.useEffect(() => {
-    if (currentActiveId && currentActiveId !== activeClinicId) {
-      setActiveClinic(currentActiveId);
-    }
-  }, [currentActiveId, activeClinicId, setActiveClinic]);
-
-  if (loading) {
-    return <span className="text-xs text-gray-500">Loading clinics...</span>;
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center space-x-2">
-        <span className="text-sm font-medium text-red-600">Error:</span>
-        <span className="text-xs text-red-500">{error}</span>
-      </div>
-    );
-  }
+  if (loading) return <span className="text-xs text-gray-500">Loading clinics...</span>;
 
   if (clinics.length === 0) {
     return <span className="text-xs text-gray-400">No clinics found</span>;
@@ -59,7 +67,7 @@ export default function ActiveClinicSwitcher({
     <div className="flex items-center space-x-2">
       <span className="text-sm font-medium text-gray-700">Clinic:</span>
       <select
-        value={activeClinicId || ''}
+        value={activeId}
         onChange={handleSwitch}
         className="block w-full rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
       >

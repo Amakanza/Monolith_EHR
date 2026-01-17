@@ -8,7 +8,6 @@ export interface Clinic {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string | null;
-  slug?: string;
 }
 
 export interface ClinicMembership {
