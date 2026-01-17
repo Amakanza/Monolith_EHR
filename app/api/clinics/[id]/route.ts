@@ -1,9 +1,5 @@
-
 import { getClinicById } from '@/lib/services/clinicService';
-import { createSuccessResponse, handleApiError } from '@/src/lib/server/api-response';
-import { requireClinicRole } from '@/src/lib/server/auth/clinic-authorization';
-import { UpdateClinicSchema, validateRequest } from '@/src/lib/server/validation/schemas';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
@@ -11,74 +7,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
-    // Check if user is a member of this clinic
-    await requireClinicRole(id);
-    
+    console.log('API: getClinicById called for clinic:', id);
     const result = await getClinicById(id);
-    return createSuccessResponse(result);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
-
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    
-    // Validate input
-    const validatedData = validateRequest(UpdateClinicSchema, body);
-    
-    // Check if user has admin permissions to update clinic
-    await requireClinicRole(id, ['owner', 'admin']);
-    
-    const supabase = createClient();
-    
-    const { data, error } = await supabase
-      .from('clinics')
-      .update(validatedData)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      throw new Error(`Failed to update clinic: ${error.message}`);
-    }
-    
-    return createSuccessResponse(data, 'Clinic updated successfully');
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    
-    // Check if user is the owner (only owners can delete clinics)
-    await requireClinicRole(id, ['owner']);
-    
-    const supabase = createClient();
-    
-    // Soft delete by setting archived_at
-    const { error } = await supabase
-      .from('clinics')
-      .update({ archived_at: new Date().toISOString() })
-      .eq('id', id);
-      
-    if (error) {
-      throw new Error(`Failed to archive clinic: ${error.message}`);
-    }
-    
-    return createSuccessResponse(undefined, 'Clinic archived successfully');
-  } catch (error) {
-    return handleApiError(error);
+    console.log('API: getClinicById result:', result);
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error('API: getClinicById error:', error);
+    const status = error.message.includes('not found') ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status });
   }
 }

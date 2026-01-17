@@ -10,7 +10,6 @@ function mapClinic(row: any): Clinic {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
-    slug: row.slug,
   };
 }
 
