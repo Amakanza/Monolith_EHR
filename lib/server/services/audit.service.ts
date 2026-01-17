@@ -8,13 +8,20 @@ export type AuditAction =
   | 'finalize' | 'send' | 'void' | 'pay' | 'join' | 'generate';
 
 export interface LogEventInput {
-  action: string; // Open string to allow flexibility, but usually follows pattern
+  clinicId: string;
+  eventType: string; // Open string to allow flexibility, but usually follows pattern
   entityType: string;
   entityId?: string | null;
   metadata?: Record<string, any>;
 }
 
-export async function logEvent(input: LogEventInput) {
+export async function recordAuditEvent(input: {
+  clinicId: string;
+  eventType: string;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: any;
+}) {
   try {
     // We try/catch inside to prevent audit failures from blocking main business logic
     // unless strict compliance is required. For MVP, we log errors to console.
@@ -22,9 +29,9 @@ export async function logEvent(input: LogEventInput) {
     const supabase = await createClient();
 
     const { error } = await supabase.from('audit_events').insert({
-      clinic_id: user.activeClinicId,
+      clinic_id: input.clinicId,
       actor_user_id: user.id,
-      event_type: input.action,
+      event_type: input.eventType,
       entity_type: input.entityType,
       entity_id: input.entityId,
       metadata: input.metadata || {},

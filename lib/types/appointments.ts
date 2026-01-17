@@ -79,7 +79,7 @@ export interface ListAppointmentsQuery {
   clinicId?: string;
   clinicianId?: string;
   patientId?: string;
-  from?: string; // ISO date
-  to?: string;   // ISO date
+  from?: string | Date; // ISO date
+  to?: string | Date;   // ISO date
   status?: AppointmentStatus;
 }

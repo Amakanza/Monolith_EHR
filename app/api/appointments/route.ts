@@ -7,7 +7,11 @@ export async function GET(request: Request) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
-    const range = start && end ? { from: start, to: end } : undefined;
+    // Convert strings to Date objects if needed
+    const fromDate = start ? (typeof start === 'string' ? new Date(start) : start) : undefined;
+    const toDate = end ? (typeof end === 'string' ? new Date(end) : end) : undefined;
+    
+    const range = fromDate || toDate ? { from: fromDate, to: toDate } : undefined;
     const appointments = await listAppointments(range);
     
     return NextResponse.json(appointments);

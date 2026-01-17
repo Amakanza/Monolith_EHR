@@ -93,13 +93,13 @@ export async function listAppointments(query?: ListAppointmentsQuery): Promise<A
     .eq('clinic_id', user.activeClinicId)
     .order('start_time', { ascending: true });
 
-  // Filter by date range if provided
+  // Filter by date range if provided - convert to strings
   if (query?.from || query?.to) {
     if (query.from) {
-      dbQuery = dbQuery.gte('start_time', query.from);
+      dbQuery = dbQuery.gte('start_time', query.from.toString());
     }
     if (query.to) {
-      dbQuery = dbQuery.lte('start_time', query.to);
+      dbQuery = dbQuery.lte('start_time', query.to.toString());
     }
   }
 
