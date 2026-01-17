@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@/lib/services/supabase/server';
+import { createClient as createServerClient } from '@/lib/server/supabase/server';
 import { CurrentUser, GlobalRole, UserProfile } from '@/lib/types/auth';
 import { redirect } from 'next/navigation';
 
