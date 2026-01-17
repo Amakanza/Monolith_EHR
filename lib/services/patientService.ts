@@ -1,5 +1,5 @@
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/services/supabase/server';
 import { 
   CreatePatientInput, 
   Patient, 
