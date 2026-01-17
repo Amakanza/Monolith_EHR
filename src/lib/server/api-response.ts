@@ -42,7 +42,7 @@ export function createErrorResponse(error: string | ApiErrorWithStatus, statusCo
   }
 
   const status = statusCode || 500;
-  const message = typeof error === 'string' ? error : error.message;
+  const message = typeof error === 'string' ? error : (error as any).message;
   const errorCode = code;
 
   return new Response(

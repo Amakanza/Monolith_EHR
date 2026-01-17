@@ -6,6 +6,12 @@ export async function listNotes() {
   return [];
 }
 
+export async function listNotesForPatient(patientId: string) {
+  const user = await ensureAuthenticatedServer();
+  // Placeholder implementation
+  return [];
+}
+
 export async function createNote(input?: any) {
   // Placeholder implementation
   return {};

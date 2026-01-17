@@ -12,7 +12,7 @@ export async function listNotifications() {
   return [];
 }
 
-export async function markNotificationRead() {
+export async function markNotificationRead(notificationId: string) {
   // Placeholder implementation
   return {};
 }

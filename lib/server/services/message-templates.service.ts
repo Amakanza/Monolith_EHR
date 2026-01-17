@@ -2,7 +2,7 @@ export async function listTemplates() {
   return [];
 }
 
-export async function createTemplate() {
+export async function createTemplate(templateData: any) {
   // Placeholder implementation
   return {};
 }

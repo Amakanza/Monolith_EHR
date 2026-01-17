@@ -1,4 +1,9 @@
 import { ensureAuthenticatedServer } from '@/lib/services/authService';
+import { z } from 'zod';
+
+export const createSessionSchema = z.object({
+  appointmentId: z.string(),
+});
 
 export async function listSessions() {
   const user = await ensureAuthenticatedServer();
@@ -13,7 +18,12 @@ export async function joinSession() {
 
 export async function verifyJoinToken(input?: any) {
   // Placeholder implementation
-  return {};
+  return {
+    appointments: {
+      start_time: new Date().toISOString(),
+      patients: {}
+    }
+  };
 }
 
 export async function logJoin(input?: any) {

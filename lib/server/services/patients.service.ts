@@ -6,7 +6,24 @@ export async function listPatients() {
   return [];
 }
 
-export async function createPatient() {
+export async function getPatientById(patientId: string) {
+  const user = await ensureAuthenticatedServer();
+  // Placeholder implementation
+  return {
+    id: patientId,
+    first_name: 'John',
+    last_name: 'Doe',
+    email: 'john@example.com',
+    phone: '555-0123',
+    dob: '1980-01-01',
+    address: '123 Main St',
+    city: 'Anytown',
+    state: 'CA',
+    zip: '12345'
+  };
+}
+
+export async function createPatient(patientData: any) {
   // Placeholder implementation
   return {};
 }
