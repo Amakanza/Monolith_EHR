@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/services/supabase/server';
 import { Clinic, ClinicMemberProfile, ClinicRole } from '@/lib/types/clinics';
 
 function mapClinic(row: any): Clinic {
