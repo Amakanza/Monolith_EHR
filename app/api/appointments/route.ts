@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
-    const range = start && end ? { from: new Date(start), to: new Date(end) } : undefined;
+    const range = start && end ? { from: start, to: end } : undefined;
     const appointments = await listAppointments(range);
     
     return NextResponse.json(appointments);
