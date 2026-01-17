@@ -1,5 +1,5 @@
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/services/supabase/server';
 import { ensureAuthenticatedServer, getCurrentUserServer } from '@/lib/services/authService';
 import { AuditEvent, AuditLogQuery, DashboardMetrics, DateRangeQuery } from '@/lib/types/reporting';
 import { getClinicById } from '@/lib/services/clinicService';
