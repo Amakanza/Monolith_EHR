@@ -10,3 +10,18 @@ export async function joinSession() {
   // Placeholder implementation
   return {};
 }
+
+export async function createSession() {
+  // Placeholder implementation
+  return {};
+}
+
+export async function updateSession() {
+  // Placeholder implementation
+  return {};
+}
+
+export async function deleteSession() {
+  // Placeholder implementation
+  return {};
+}

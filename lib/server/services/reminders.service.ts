@@ -5,6 +5,16 @@ export async function generateAppointmentReminders(appointmentId: string) {
   console.log(`Would queue reminder for appointment: ${appointmentId}`);
 }
 
+export async function runReminderCampaign() {
+  // Placeholder
+  return [];
+}
+
+export async function sendReminders() {
+  // Placeholder
+  return [];
+}
+
 export async function listTemplates() {
   return [];
 }

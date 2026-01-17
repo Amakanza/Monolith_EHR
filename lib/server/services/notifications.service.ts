@@ -10,3 +10,8 @@ export async function markNotificationRead() {
   // Placeholder implementation
   return {};
 }
+
+export async function createNotification() {
+  // Placeholder implementation
+  return {};
+}

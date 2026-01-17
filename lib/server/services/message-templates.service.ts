@@ -6,3 +6,8 @@ export async function createTemplate() {
   // Placeholder implementation
   return {};
 }
+
+export async function deleteTemplate() {
+  // Placeholder implementation
+  return {};
+}

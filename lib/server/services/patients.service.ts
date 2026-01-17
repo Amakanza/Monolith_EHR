@@ -10,3 +10,13 @@ export async function createPatient() {
   // Placeholder implementation
   return {};
 }
+
+export async function updatePatient() {
+  // Placeholder implementation
+  return {};
+}
+
+export async function deletePatient() {
+  // Placeholder implementation
+  return {};
+}

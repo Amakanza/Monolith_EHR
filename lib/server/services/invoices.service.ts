@@ -10,3 +10,13 @@ export async function createInvoice() {
   // Placeholder implementation
   return {};
 }
+
+export async function addLineItem() {
+  // Placeholder implementation
+  return {};
+}
+
+export async function deleteLineItem() {
+  // Placeholder implementation
+  return {};
+}

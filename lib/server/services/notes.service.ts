@@ -10,3 +10,13 @@ export async function createNote() {
   // Placeholder implementation
   return {};
 }
+
+export async function updateNote() {
+  // Placeholder implementation
+  return {};
+}
+
+export async function deleteNote() {
+  // Placeholder implementation
+  return {};
+}
