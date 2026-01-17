@@ -88,7 +88,12 @@ export default function ClinicsListPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <p className="truncate text-sm font-medium text-indigo-600">{clinic.name}</p>
-                      <div className="ml-2 flex flex-shrink-0">
+                      <div className="ml-2 flex flex-shrink-0 space-x-2">
+                        {clinic.myRole && (
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                            {clinic.myRole}
+                          </span>
+                        )}
                         <p className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">
                           {clinic.timezone}
                         </p>

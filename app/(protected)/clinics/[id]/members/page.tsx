@@ -92,6 +92,25 @@ export default function MembersPage() {
     }
   };
 
+  const handleRoleChange = async (userId: string, newRole: ClinicRole) => {
+    try {
+      const res = await fetch(`/api/clinics/${clinicId}/members/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      setMembers(members.map(m => 
+        m.userId === userId ? { ...m, role: newRole } : m
+      ));
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   if (loading) return <div className="p-8">Loading members...</div>;
 
   return (
@@ -147,9 +166,22 @@ export default function MembersPage() {
                 <p className="text-sm text-gray-500">ID: {member.userId}</p>
               </div>
               <div className="flex items-center space-x-4">
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                  {member.role}
-                </span>
+                {canManage && member.userId !== params?.id ? (
+                  <select
+                    value={member.role}
+                    onChange={(e) => handleRoleChange(member.userId, e.target.value as ClinicRole)}
+                    className="text-xs rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="admin">Admin</option>
+                    <option value="clinician">Clinician</option>
+                    <option value="receptionist">Receptionist</option>
+                  </select>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                    {member.role}
+                  </span>
+                )}
                 {canManage && (
                   <button
                     onClick={() => handleRemove(member.userId)}

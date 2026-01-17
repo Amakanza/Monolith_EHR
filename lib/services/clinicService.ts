@@ -6,6 +6,7 @@ function mapClinic(row: any): Clinic {
     id: row.id,
     name: row.name,
     timezone: row.timezone,
+    slug: row.slug || '',
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -48,56 +49,34 @@ export async function createClinic(input: { name: string; timezone?: string }): 
 }
 
 /**
- * Lists clinics that the current user belongs to
- * Uses the exact query specified in requirements:
- * select clinics.*
- * from clinics
- * join clinic_memberships on clinic_memberships.clinic_id = clinics.id
- * where clinic_memberships.user_id = auth.uid()
+ * Lists clinics that the current user belongs to with role information
+ * Uses the new list_my_clinics() RPC function for better performance and RLS safety
  */
 export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   console.log('listMyClinics called');
   const supabase = createClient();
   
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log('listMyClinics auth user:', user);
-  
-  if (!user) {
-    console.error('User not authenticated in listMyClinics');
-    throw new Error('Not authenticated');
-  }
+  // Use the new RPC function that includes role information
+  const { data, error } = await supabase.rpc('list_my_clinics');
 
-  // Use the exact SQL structure specified in requirements with inner join
-  const { data: finalData, error: finalError } = await supabase
-    .from('clinics')
-    .select(`
-      id,
-      name,
-      timezone,
-      created_by,
-      created_at,
-      updated_at,
-      archived_at,
-      slug,
-      clinic_memberships!inner(
-        user_id,
-        clinic_id
-      )
-    `)
-    .eq('clinic_memberships.user_id', user.id)
-    .order('created_at', { ascending: false });
+  console.log('listMyClinics RPC result:', { data, error, count: data?.length });
 
-  console.log('listMyClinics clinics query result:', { finalData, finalError, count: finalData?.length });
-
-  if (finalError) {
-    console.error('listMyClinics database error:', finalError);
-    throw new Error(`Failed to fetch clinics: ${finalError.message}`);
+  if (error) {
+    console.error('listMyClinics RPC error:', error);
+    throw new Error(`Failed to fetch clinics: ${error.message}`);
   }
   
-  // Map the results, extracting clinic data from the joined structure
-  const clinics = finalData.map((row: any) => {
-    const { clinic_memberships, ...clinicData } = row;
-    return mapClinic(clinicData);
+  if (!data) {
+    console.log('listMyClinics: No data returned');
+    return { clinics: [] };
+  }
+  
+  // Map the results, include role if needed
+  const clinics = data.map((row: any) => {
+    const clinic = mapClinic(row);
+    // Store role if needed for UI
+    (clinic as any).myRole = row.my_role;
+    return clinic;
   });
   
   const result = { clinics };
@@ -152,28 +131,23 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
 
 /**
  * Sets the active clinic for the current user
+ * Uses the new set_active_clinic RPC function
  */
 export async function setActiveClinic(clinicId: string): Promise<void> {
+  console.log('setActiveClinic called with:', clinicId);
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  
+  // Use the new RPC function that handles validation
+  const { error } = await supabase.rpc('set_active_clinic', {
+    _clinic_id: clinicId
+  });
 
-  // Verify membership before setting
-  const { data: memberData } = await supabase
-    .from('clinic_memberships')
-    .select('id')
-    .eq('clinic_id', clinicId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (!memberData) throw new Error('You are not a member of this clinic');
-
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({ active_clinic_id: clinicId })
-    .eq('id', user.id);
-
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('setActiveClinic RPC error:', error);
+    throw new Error(error.message);
+  }
+  
+  console.log('setActiveClinic success');
 }
 
 /**
@@ -199,6 +173,7 @@ export async function getActiveClinic(): Promise<string | null> {
  * Lists all members of a clinic
  */
 export async function listClinicMembers(clinicId: string) {
+  console.log('listClinicMembers called for clinic:', clinicId);
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -207,71 +182,100 @@ export async function listClinicMembers(clinicId: string) {
       id,
       role,
       user_id,
-      user_profiles (
+      user_profiles!inner (
         full_name,
         global_role
       )
     `)
-    .eq('clinic_id', clinicId);
+    .eq('clinic_id', clinicId)
+    .order('created_at', { ascending: true });
 
-  if (error) throw new Error(error.message);
+  console.log('listClinicMembers query result:', { data, error });
+
+  if (error) {
+    console.error('listClinicMembers error:', error);
+    throw new Error(error.message);
+  }
   
-  return {
+  const result = {
     members: data.map((row: any) => ({
       membershipId: row.id,
       userId: row.user_id,
       role: row.role as ClinicRole,
-      fullName: row.user_profiles?.full_name || 'Unknown',
+      fullName: row.user_profiles?.full_name || 'Unknown User',
+      email: row.user_profiles?.email || null, // Include if available
+      globalRole: row.user_profiles?.global_role || 'standard_user',
     }))
   };
+
+  console.log('listClinicMembers returning:', result);
+  return result;
 }
 
 /**
  * Adds a member to a clinic
+ * Uses the new add_clinic_member RPC function
  */
 export async function addClinicMember(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
+  console.log('addClinicMember called with:', input);
   const supabase = createClient();
   
-  const { error } = await supabase
-    .from('clinic_memberships')
-    .insert({
-      clinic_id: input.clinicId,
-      user_id: input.userId,
-      role: input.role
-    });
+  const { error } = await supabase.rpc('add_clinic_member', {
+    _clinic_id: input.clinicId,
+    _user_id: input.userId,
+    _role: input.role
+  });
 
   if (error) {
-    if (error.code === '23505') throw new Error('User is already a member');
+    console.error('addClinicMember RPC error:', error);
+    if (error.message.includes('duplicate')) {
+      throw new Error('User is already a member');
+    }
     throw new Error(error.message);
   }
+  
+  console.log('addClinicMember success');
 }
 
 /**
  * Updates a clinic member's role
+ * Uses the new update_clinic_member_role RPC function
  */
 export async function updateClinicMemberRole(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
+  console.log('updateClinicMemberRole called with:', input);
   const supabase = createClient();
 
-  const { error } = await supabase
-    .from('clinic_memberships')
-    .update({ role: input.role })
-    .eq('clinic_id', input.clinicId)
-    .eq('user_id', input.userId);
+  const { error } = await supabase.rpc('update_clinic_member_role', {
+    _clinic_id: input.clinicId,
+    _user_id: input.userId,
+    _new_role: input.role
+  });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('updateClinicMemberRole RPC error:', error);
+    throw new Error(error.message);
+  }
+  
+  console.log('updateClinicMemberRole success');
 }
 
 /**
  * Removes a member from a clinic
+ * Uses the new remove_clinic_member RPC function
  */
 export async function removeClinicMember(input: { clinicId: string; userId: string }): Promise<void> {
+  console.log('removeClinicMember called with:', input);
   const supabase = createClient();
 
-  const { error } = await supabase
-    .from('clinic_memberships')
-    .delete()
-    .eq('clinic_id', input.clinicId)
-    .eq('user_id', input.userId);
+  const { error } = await supabase.rpc('remove_clinic_member', {
+    _clinic_id: input.clinicId,
+    _user_id: input.userId
+  });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error('removeClinicMember RPC error:', error);
+    throw new Error(error.message);
+  }
+  
+  console.log('removeClinicMember success');
 }
