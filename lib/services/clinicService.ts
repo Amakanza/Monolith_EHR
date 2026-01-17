@@ -10,6 +10,7 @@ function mapClinic(row: any): Clinic {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
+    slug: row.slug,
   };
 }
 
@@ -48,6 +49,36 @@ export async function createClinic(input: { name: string; timezone?: string }): 
 }
 
 /**
+ * Ensures user has a profile, creates one if missing
+ */
+async function ensureUserProfile(userId: string): Promise<void> {
+  const supabase = createClient();
+  
+  // Check if profile exists
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .eq('id', userId)
+    .single();
+    
+  if (profileError && profileError.code === 'PGRST116') {
+    // Profile doesn't exist, create it
+    console.log('Creating missing user profile for:', userId);
+    const { error: createError } = await supabase
+      .from('user_profiles')
+      .insert({ id: userId });
+      
+    if (createError) {
+      console.error('Failed to create user profile:', createError);
+      throw new Error('Failed to create user profile');
+    }
+  } else if (profileError) {
+    console.error('Error checking user profile:', profileError);
+    throw new Error('Error checking user profile');
+  }
+}
+
+/**
  * Lists clinics that the current user belongs to
  * Uses the exact query specified in requirements:
  * select clinics.*
@@ -73,7 +104,15 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
     throw new Error('Not authenticated: No user found');
   }
   
-  // Check if user has a profile
+  // Ensure user has a profile (create if missing)
+  try {
+    await ensureUserProfile(user.id);
+  } catch (error) {
+    console.error('Failed to ensure user profile:', error);
+    // Continue anyway - the trigger might create the profile
+  }
+  
+  // Check if user has a profile (now should exist)
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('id, active_clinic_id, full_name')
@@ -85,7 +124,7 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   if (profileError) {
     console.error('User profile error in listMyClinics:', profileError);
     if (profileError.code === 'PGRST116') {
-      throw new Error('User profile not found. Please complete your profile setup.');
+      throw new Error('User profile not found. Please try refreshing the page or contact support.');
     }
     throw new Error(`Profile error: ${profileError.message}`);
   }
@@ -95,7 +134,7 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
     console.log('User has profile but no active clinic set');
   }
 
-// First, let's check if the user has any clinic memberships at all
+  // First, let's check if the user has any clinic memberships at all
   const { data: membershipsData, error: membershipsError } = await supabase
     .from('clinic_memberships')
     .select('clinic_id, role')
@@ -124,6 +163,7 @@ export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
       created_at,
       updated_at,
       archived_at,
+      slug,
       clinic_memberships!inner(
         user_id,
         clinic_id
@@ -328,4 +368,148 @@ export async function removeClinicMember(input: { clinicId: string; userId: stri
     .eq('user_id', input.userId);
 
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Finds a user by email address
+ */
+export async function findUserByEmail(email: string): Promise<{ id: string; fullName: string | null } | null> {
+  const supabase = createClient();
+  
+  // First try to find user in auth.users via admin API
+  const { data: { users }, error: adminError } = await supabase.auth.admin.listUsers();
+  
+  if (adminError) {
+    console.error('Admin API error:', adminError);
+    throw new Error('Failed to search for user');
+  }
+  
+  const user = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  
+  if (!user) {
+    return null;
+  }
+  
+  // Get user profile information
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single();
+    
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error('Profile fetch error:', profileError);
+  }
+  
+  return {
+    id: user.id,
+    fullName: profile?.full_name || null
+  };
+}
+
+/**
+ * Adds a member to a clinic by email or user ID
+ * This is the missing function that was identified in the audit
+ */
+export async function addMemberByEmailOrUserId(
+  clinicId: string, 
+  identifier: string, 
+  role: ClinicRole
+): Promise<{ userId: string; fullName: string | null }> {
+  console.log('addMemberByEmailOrUserId called:', { clinicId, identifier, role });
+  
+  const supabase = createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    throw new Error('Not authenticated');
+  }
+  
+  // Check if current user has permission to add members (owner/admin)
+  const { data: currentUserMembership, error: permissionError } = await supabase
+    .from('clinic_memberships')
+    .select('role')
+    .eq('clinic_id', clinicId)
+    .eq('user_id', user.id)
+    .single();
+    
+  if (permissionError || !currentUserMembership) {
+    throw new Error('You are not a member of this clinic');
+  }
+  
+  if (!['owner', 'admin'].includes(currentUserMembership.role)) {
+    throw new Error('Only clinic owners and admins can add members');
+  }
+  
+  // Determine if identifier is email or user ID
+  let targetUserId: string;
+  let userInfo: { id: string; fullName: string | null } | null = null;
+  
+  // Check if it looks like a UUID (simple validation)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (uuidRegex.test(identifier)) {
+    // It's a user ID
+    targetUserId = identifier;
+    
+    // Verify user exists and get profile info
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('full_name')
+      .eq('id', targetUserId)
+      .single();
+      
+    if (profileError) {
+      if (profileError.code === 'PGRST116') {
+        throw new Error('User not found');
+      }
+      throw new Error('Failed to verify user');
+    }
+    
+    userInfo = { id: targetUserId, fullName: profile.full_name };
+  } else {
+    // It's an email address
+    userInfo = await findUserByEmail(identifier);
+    
+    if (!userInfo) {
+      throw new Error('No user found with this email address');
+    }
+    
+    targetUserId = userInfo.id;
+  }
+  
+  // Check if user is already a member
+  const { data: existingMembership, error: checkError } = await supabase
+    .from('clinic_memberships')
+    .select('id, role')
+    .eq('clinic_id', clinicId)
+    .eq('user_id', targetUserId)
+    .single();
+    
+  if (checkError && checkError.code !== 'PGRST116') {
+    throw new Error('Failed to check existing membership');
+  }
+  
+  if (existingMembership) {
+    throw new Error(`User is already a member of this clinic as ${existingMembership.role}`);
+  }
+  
+  // Add the member
+  const { error: addError } = await supabase
+    .from('clinic_memberships')
+    .insert({
+      clinic_id: clinicId,
+      user_id: targetUserId,
+      role: role
+    });
+    
+  if (addError) {
+    console.error('Error adding member:', addError);
+    throw new Error(`Failed to add member: ${addError.message}`);
+  }
+  
+  console.log('Member added successfully:', { userId: targetUserId, role });
+  
+  return { userId: userInfo!.id, fullName: userInfo!.fullName };
 }

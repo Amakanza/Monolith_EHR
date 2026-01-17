@@ -1,48 +1,61 @@
 import { createClinic, listMyClinics } from '@/lib/services/clinicService';
-import { NextResponse } from 'next/server';
+import { createSuccessResponse, handleApiError, ApiErrorWithStatus } from '@/src/lib/server/api-response';
+import { CreateClinicSchema, validateRequest } from '@/src/lib/server/validation/schemas';
+import { rateLimit } from '@/src/lib/server/rate-limit';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const rateLimitResult = rateLimit.standard(request);
+    if (rateLimitResult instanceof Response) {
+      return rateLimitResult;
+    }
+
     const result = await listMyClinics();
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error('API GET /clinics error:', error);
     
-    // Return appropriate status codes based on error type
-    let statusCode = 500;
-    if (error.message.includes('Not authenticated')) {
-      statusCode = 401;
-    } else if (error.message.includes('User profile not found')) {
-      statusCode = 422; // Unprocessable Entity
-    } else if (error.message.includes('No clinics found') || error.message.includes('Access denied')) {
-      statusCode = 404;
+    const response = createSuccessResponse(result);
+    // Add rate limit headers
+    if (rateLimitResult.headers) {
+      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+        response.headers.set(key, value as string);
+      });
     }
     
-    return NextResponse.json({ 
-      error: error.message,
-      type: error.constructor.name,
-      statusCode 
-    }, { status: statusCode });
+    return response;
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    // Apply stricter rate limiting for clinic creation
+    const rateLimitResult = rateLimit.strict(request);
+    if (rateLimitResult instanceof Response) {
+      return rateLimitResult;
     }
 
-    // createClinic now returns only a UUID string
+    const body = await request.json();
+    const validatedData = validateRequest(CreateClinicSchema, body);
+
     const clinicId = await createClinic({
-      name: body.name,
-      timezone: body.timezone,
+      name: validatedData.name,
+      timezone: validatedData.timezone,
     });
     
     console.log('API: Clinic created successfully with ID:', clinicId);
-    return NextResponse.json({ clinicId }, { status: 201 });
-  } catch (error: any) {
-    console.error('API POST /clinics error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const response = createSuccessResponse({ clinicId }, 'Clinic created successfully');
+    
+    // Add rate limit headers
+    if (rateLimitResult.headers) {
+      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+        response.headers.set(key, value as string);
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    return handleApiError(error);
   }
 }

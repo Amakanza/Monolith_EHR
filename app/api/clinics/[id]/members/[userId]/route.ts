@@ -1,6 +1,8 @@
 
 import { removeClinicMember, updateClinicMemberRole } from '@/lib/services/clinicService';
-import { NextResponse } from 'next/server';
+import { createSuccessResponse, handleApiError } from '@/src/lib/server/api-response';
+import { requireClinicRole } from '@/src/lib/server/auth/clinic-authorization';
+import { UpdateMemberRoleSchema, validateRequest } from '@/src/lib/server/validation/schemas';
 
 export async function PATCH(
   request: Request,
@@ -10,19 +12,21 @@ export async function PATCH(
     const { id, userId } = await params;
     const body = await request.json();
     
-    if (!body.role) {
-      return NextResponse.json({ error: 'Role is required' }, { status: 400 });
-    }
+    // Validate input
+    const validatedData = validateRequest(UpdateMemberRoleSchema, body);
+    
+    // Check if user has admin permissions to update member roles
+    await requireClinicRole(id, ['owner', 'admin']);
 
     await updateClinicMemberRole({
       clinicId: id,
       userId,
-      role: body.role,
+      role: validatedData.role,
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSuccessResponse(undefined, 'Member role updated successfully');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -33,17 +37,16 @@ export async function DELETE(
   try {
     const { id, userId } = await params;
     
+    // Check if user has admin permissions to remove members
+    await requireClinicRole(id, ['owner', 'admin']);
+    
     await removeClinicMember({
       clinicId: id,
       userId,
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    const isConflict = error.message.includes('last owner');
-    return NextResponse.json(
-      { error: error.message }, 
-      { status: isConflict ? 409 : 500 }
-    );
+    return createSuccessResponse(undefined, 'Member removed successfully');
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,25 +1,24 @@
 import { getActiveClinic, setActiveClinic } from '@/lib/services/clinicService';
-import { NextResponse } from 'next/server';
+import { createSuccessResponse, handleApiError } from '@/src/lib/server/api-response';
+import { SetActiveClinicSchema, validateRequest } from '@/src/lib/server/validation/schemas';
 
 export async function GET() {
   try {
     const activeClinicId = await getActiveClinic();
-    return NextResponse.json({ activeClinicId });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createSuccessResponse({ activeClinicId });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    if (!body.clinicId) {
-      return NextResponse.json({ error: 'Clinic ID is required' }, { status: 400 });
-    }
+    const validatedData = validateRequest(SetActiveClinicSchema, body);
 
-    await setActiveClinic(body.clinicId);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    await setActiveClinic(validatedData.clinicId);
+    return createSuccessResponse(undefined, 'Active clinic updated successfully');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
