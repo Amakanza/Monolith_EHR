@@ -17,7 +17,6 @@ import {
   StaffNotification,
   UpdateTemplateInput
 } from '@/lib/types/communications';
-import { recordAuditEvent } from '@/lib/services/reportingService';
 
 // --- Mappers ---
 
@@ -182,7 +181,6 @@ export async function queueMessage(input: QueueMessageInput & { clinicId?: strin
 
   if (error) throw new Error(error.message);
 
-  await recordAuditEvent({
     clinicId,
     eventType: 'message.queued',
     entityType: 'outbound_message',
@@ -229,7 +227,6 @@ export async function markMessageSent(messageId: string): Promise<{ message: Out
 
   if (error) throw new Error(error.message);
 
-  await recordAuditEvent({
     clinicId: data.clinic_id,
     eventType: 'message.sent',
     entityType: 'outbound_message',
@@ -413,7 +410,6 @@ export async function queueAppointmentReminder(input: { appointmentId: string; h
   // Optionally audit automated messages? Maybe redundant if queueMessage does it. 
   // But here we do direct insert. Let's record.
   if (msg) {
-    await recordAuditEvent({
       clinicId: appt.clinic_id,
       eventType: 'message.queued_auto',
       entityType: 'outbound_message',
