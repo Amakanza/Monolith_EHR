@@ -105,7 +105,7 @@ export async function createAppointment(input: CreateAppointmentInput & { clinic
   });
 
   try {
-    await queueAppointmentReminder({ appointmentId: appt.id });
+    await queueAppointmentReminder(appt.id);
   } catch (e) {
     console.error('Failed to queue appointment reminder', e);
   }
