@@ -15,7 +15,7 @@ function mapClinic(row: any): Clinic {
 
 export async function createClinic(input: { name: string; timezone?: string }): Promise<{ clinic: Clinic }> {
   const supabase = await createClient();
-  
+
   // Use the RPC function for transactional creation (clinic + owner membership)
   const { data, error } = await supabase.rpc('create_clinic_with_owner', {
     name: input.name,
@@ -30,20 +30,43 @@ export async function createClinic(input: { name: string; timezone?: string }): 
 
 export async function listMyClinics(): Promise<{ clinics: Clinic[] }> {
   const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from('clinics')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (error) throw new Error(error.message);
-  
-  return { clinics: data.map(mapClinic) };
+  if (!user) throw new Error('Not authenticated');
+
+  // Explicitly join through memberships to get only clinics the user belongs to
+  const { data, error } = await supabase
+    .from('clinic_memberships')
+    .select(`
+      clinics (
+        id,
+        name,
+        timezone,
+        created_by,
+        created_at,
+        updated_at,
+        archived_at
+      )
+    `)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error fetching clinics:', error);
+    throw new Error(error.message);
+  }
+
+  // Extract and map the clinic data
+  const clinics = (data ?? [])
+    .map((membership: any) => membership.clinics)
+    .filter((clinic: any) => clinic !== null)
+    .map(mapClinic);
+
+  return { clinics };
 }
 
 export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic; myRole: ClinicRole }> {
   const supabase = await createClient();
-  
+
   // 1. Fetch Clinic (RLS ensures we can only see it if we are a member)
   const { data: clinicData, error: clinicError } = await supabase
     .from('clinics')
@@ -71,7 +94,7 @@ export async function getClinicById(clinicId: string): Promise<{ clinic: Clinic;
     throw new Error('Membership verification failed');
   }
 
-  return { 
+  return {
     clinic: mapClinic(clinicData),
     myRole: memberData.role as ClinicRole
   };
@@ -110,7 +133,7 @@ export async function getActiveClinic(): Promise<string | null> {
     .select('active_clinic_id')
     .eq('id', user.id)
     .single();
-    
+
   return data?.active_clinic_id ?? null;
 }
 
@@ -137,7 +160,7 @@ export async function listClinicMembers(clinicId: string): Promise<{ members: Cl
   // Note: We can't easily join auth.users to get email due to permissions.
   // We'll rely on full_name for now. In a real app, you might sync email to public.user_profiles
   // or use a secure edge function to fetch emails.
-  
+
   return {
     members: data.map((row: any) => ({
       membershipId: row.id,
@@ -150,10 +173,10 @@ export async function listClinicMembers(clinicId: string): Promise<{ members: Cl
 
 export async function addClinicMember(input: { clinicId: string; userId: string; role: ClinicRole }): Promise<void> {
   const supabase = await createClient();
-  
+
   // Note: Ensure the caller is admin/owner via RLS/Policy, but service methods usually imply trusted context?
   // No, Supabase RLS is the ultimate guard. We just attempt the insert.
-  
+
   const { error } = await supabase
     .from('clinic_memberships')
     .insert({
