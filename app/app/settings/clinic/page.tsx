@@ -27,7 +27,7 @@ export default async function ClinicSettingsPage() {
           </div>
           <div>
             <dt className="text-sm font-medium text-gray-500">Created At</dt>
-            <dd className="mt-1 text-sm text-gray-900">{new Date(clinic.created_at).toLocaleDateString()}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{new Date(clinic.createdAt).toLocaleDateString()}</dd>
           </div>
         </dl>
       </div>

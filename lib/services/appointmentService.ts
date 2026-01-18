@@ -50,8 +50,8 @@ function mapAppointment(row: any): Appointment {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    patientName: row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : undefined,
-    clinicianName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || undefined) : undefined,
+    patientName: row.patients?.fullName || 'Unknown',
+    clinicianName: row.user_profiles ? dbToAppProfile(row.user_profiles)?.fullName || 'Unknown' : 'Unknown',
     appointmentTypeName: row.appointment_types ? row.appointment_types.name : undefined
   };
 }

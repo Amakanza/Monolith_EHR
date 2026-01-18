@@ -53,7 +53,7 @@ export default async function PatientNotesPage({
               notes.map((note: any) => (
                 <tr key={note.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {new Date(note.created_at).toLocaleString()}
+                    {new Date(note.createdAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 max-w-md truncate">
                     {note.subjective || <span className="text-gray-400 italic">Empty</span>}

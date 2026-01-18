@@ -1,4 +1,4 @@
-import { listPatients } from '@/lib/server/services/patients.service';
+import { listPatients } from '@/lib/services/patientService';
 import Link from 'next/link';
 
 export default async function PatientsPage() {
@@ -33,17 +33,17 @@ export default async function PatientsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
-            {patients.length === 0 ? (
+            {patients.patients.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                   No active patients found. Get started by adding one!
                 </td>
               </tr>
             ) : (
-              patients.map((patient: any) => (
+              patients.patients.map((patient: any) => (
                 <tr key={patient.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4">
-                    <div className="font-medium text-gray-900">{patient.first_name} {patient.last_name}</div>
+                    <div className="font-medium text-gray-900">{patient.firstName} {patient.lastName}</div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     <div className="flex flex-col">
@@ -55,7 +55,7 @@ export default async function PatientsPage() {
                     {patient.dob ? new Date(patient.dob).toLocaleDateString() : '-'}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {new Date(patient.created_at).toLocaleDateString()}
+                    {new Date(patient.createdAt).toLocaleDateString()}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                     <Link href={`/app/patients/${patient.id}`} className="text-blue-600 hover:text-blue-900">

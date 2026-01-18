@@ -36,7 +36,7 @@ export default function NotificationsPage() {
               <div>
                 <h3 className="font-semibold text-gray-900">{n.title}</h3>
                 {n.body && <p className="text-sm text-gray-600 mt-1">{n.body}</p>}
-                <p className="text-xs text-gray-400 mt-2">{new Date(n.created_at).toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
               </div>
               {n.status === 'unread' && (
                 <button 

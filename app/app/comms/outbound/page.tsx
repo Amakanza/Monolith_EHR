@@ -156,7 +156,7 @@ export default function OutboundMessagesPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{m.body}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{new Date(m.created_at).toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{new Date(m.createdAt).toLocaleString()}</td>
               </tr>
             ))}
             {messages.length === 0 && !loading && (
