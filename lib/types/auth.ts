@@ -13,7 +13,7 @@ export interface DBUserProfile {
 }
 
 // Represents the user profile in application/domain shape (camelCase)
-export interface UserProfile {
+export interface AppUserProfile {
   id: string;
   fullName: string | null;
   globalRole: GlobalRole;
@@ -22,6 +22,9 @@ export interface UserProfile {
   updatedAt: string;
   activeClinicId?: string | null;
 }
+
+// @deprecated Use AppUserProfile instead - kept for backward compatibility
+export type UserProfile = AppUserProfile;
 
 // Represents the currently authenticated user including profile + global role
 export interface CurrentUser {

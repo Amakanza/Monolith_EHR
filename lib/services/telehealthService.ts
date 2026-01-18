@@ -1,6 +1,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { ensureAuthenticatedServer } from '@/lib/services/authService';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 import { 
   CreateTelehealthSessionInput, 
   ListSessionsQuery, 
@@ -35,7 +36,7 @@ function mapSession(row: any): TelehealthSession {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     patientName: row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : undefined,
-    clinicianName: row.user_profiles ? row.user_profiles.full_name : undefined,
+    clinicianName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || undefined) : undefined,
     appointmentStartTime: row.appointments ? row.appointments.start_time : undefined,
   };
 }
@@ -53,7 +54,7 @@ function mapLog(row: any): TelehealthJoinLog {
     userAgent: row.user_agent,
     status: row.status,
     error: row.error,
-    actorName: row.user_profiles ? row.user_profiles.full_name : undefined
+    actorName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || undefined) : undefined
   };
 }
 

@@ -1,5 +1,6 @@
 
 import { createClient } from '@/lib/supabase/server';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 import { 
   Appointment, 
   AppointmentType, 
@@ -50,7 +51,7 @@ function mapAppointment(row: any): Appointment {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     patientName: row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : undefined,
-    clinicianName: row.user_profiles ? row.user_profiles.full_name : undefined,
+    clinicianName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || undefined) : undefined,
     appointmentTypeName: row.appointment_types ? row.appointment_types.name : undefined
   };
 }

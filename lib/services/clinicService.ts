@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Clinic, ClinicRole } from '@/lib/types/clinics';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 
 function mapClinic(row: any): Clinic {
   return {
@@ -182,10 +183,7 @@ export async function listClinicMembers(clinicId: string) {
       id,
       role,
       user_id,
-      user_profiles!inner (
-        full_name,
-        global_role
-      )
+      user_profiles!inner (*)
     `)
     .eq('clinic_id', clinicId)
     .order('created_at', { ascending: true });
@@ -198,14 +196,19 @@ export async function listClinicMembers(clinicId: string) {
   }
   
   const result = {
-    members: data.map((row: any) => ({
-      membershipId: row.id,
-      userId: row.user_id,
-      role: row.role as ClinicRole,
-      fullName: row.user_profiles?.full_name || 'Unknown User',
-      email: row.user_profiles?.email || null, // Include if available
-      globalRole: row.user_profiles?.global_role || 'standard_user',
-    }))
+    members: data.map((row: any) => {
+      // Use centralized mapper for user profile fields
+      const userProfile = row.user_profiles ? dbToAppProfile(row.user_profiles) : null;
+      
+      return {
+        membershipId: row.id,
+        userId: row.user_id,
+        role: row.role as ClinicRole,
+        fullName: userProfile?.fullName || 'Unknown User',
+        email: null, // Email is in auth.users, not user_profiles table. Would need separate query if needed.
+        globalRole: userProfile?.globalRole || 'standard_user',
+      };
+    })
   };
 
   console.log('listClinicMembers returning:', result);

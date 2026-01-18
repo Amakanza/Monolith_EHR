@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ensureAuthenticatedServer, getCurrentUserServer } from '@/lib/services/authService';
 import { AuditEvent, AuditLogQuery, DashboardMetrics, DateRangeQuery } from '@/lib/types/reporting';
 import { getClinicById } from '@/lib/services/clinicService';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 
 // --- Mappers ---
 
@@ -17,7 +18,7 @@ function mapAuditEvent(row: any): AuditEvent {
     entityId: row.entity_id,
     metadata: row.metadata,
     createdAt: row.created_at,
-    actorName: row.user_profiles?.full_name || 'Unknown'
+    actorName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || 'Unknown') : 'Unknown'
   };
 }
 
@@ -236,7 +237,7 @@ export async function exportAppointmentsCsv(input: DateRangeQuery): Promise<{ cs
     a.start_time,
     a.end_time,
     `${a.patients?.first_name} ${a.patients?.last_name}`,
-    a.user_profiles?.full_name,
+    a.user_profiles ? (dbToAppProfile(a.user_profiles).fullName || null) : null,
     a.appointment_types?.name,
     a.status,
     a.internal_note

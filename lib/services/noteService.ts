@@ -13,10 +13,15 @@ import {
   UpdateTemplateInput
 } from '@/lib/types/notes';
 import { recordAuditEvent } from '@/lib/services/reportingService';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 
 // --- Mappers ---
 
 function mapNote(row: any): ClinicalNote {
+  // Use centralized mapper for user profile fields
+  const authorAppProfile = row.author_profile ? dbToAppProfile(row.author_profile) : null;
+  const finalizerAppProfile = row.finalizer_profile ? dbToAppProfile(row.finalizer_profile) : null;
+
   return {
     id: row.id,
     clinicId: row.clinic_id,
@@ -37,8 +42,8 @@ function mapNote(row: any): ClinicalNote {
     authorId: row.author_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    authorName: row.author_profile?.full_name,
-    finalizerName: row.finalizer_profile?.full_name,
+    authorName: authorAppProfile?.fullName || undefined,
+    finalizerName: finalizerAppProfile?.fullName || undefined,
     templateName: row.note_templates?.name
   };
 }
@@ -160,8 +165,8 @@ export async function createClinicalNote(input: CreateClinicalNoteInput & { clin
       tags: input.tags,
       author_id: user.id,
       status: 'draft'
-    })
-    .select('*, author_profile:user_profiles!author_id(full_name), note_templates(name)')
+})
+    .select('*, author_profile:user_profiles!author_id(*), note_templates(name)')
     .single();
 
   if (error) throw new Error(error.message);
@@ -203,7 +208,7 @@ export async function updateClinicalNote(noteId: string, input: UpdateClinicalNo
     .from('clinical_notes')
     .update(updates)
     .eq('id', noteId)
-    .select('*, author_profile:user_profiles!author_id(full_name), note_templates(name)')
+.select('*, author_profile:user_profiles!author_id(*), note_templates(name)')
     .single();
 
   if (error) throw new Error(error.message);
@@ -231,7 +236,7 @@ export async function finalizeClinicalNote(noteId: string): Promise<{ note: Clin
       finalized_by: user.id
     })
     .eq('id', noteId)
-    .select('*, author_profile:user_profiles!author_id(full_name), finalizer_profile:user_profiles!finalized_by(full_name), note_templates(name)')
+.select('*, author_profile:user_profiles!author_id(*), finalizer_profile:user_profiles!finalized_by(*), note_templates(name)')
     .single();
 
   if (error) throw new Error(error.message);
@@ -252,9 +257,9 @@ export async function getClinicalNoteById(noteId: string): Promise<ClinicalNoteW
   const { data: noteData, error: noteError } = await supabase
     .from('clinical_notes')
     .select(`
-      *,
-      author_profile:user_profiles!author_id(full_name),
-      finalizer_profile:user_profiles!finalized_by(full_name),
+*,
+      author_profile:user_profiles!author_id(*),
+      finalizer_profile:user_profiles!finalized_by(*),
       note_templates(name)
     `)
     .eq('id', noteId)
@@ -282,7 +287,7 @@ export async function listNotesForPatient(input: { patientId: string; includeDra
 
   let query = supabase
     .from('clinical_notes')
-    .select('*, author_profile:user_profiles!author_id(full_name), note_templates(name)')
+    .select('*, author_profile:user_profiles!author_id(*), note_templates(name)')
     .eq('clinic_id', user.activeClinicId)
     .eq('patient_id', input.patientId)
     .order('note_date', { ascending: false })

@@ -9,6 +9,9 @@ export async function getActiveClinic() {
     return null;
   }
 
+  // Note: Direct DB field access is acceptable here as this is a low-level helper
+  // for getting a specific field value. Prefer using user.activeClinicId from CurrentUser
+  // when possible in application code.
   const { data } = await supabase
     .from('user_profiles')
     .select('active_clinic_id')

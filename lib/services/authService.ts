@@ -1,18 +1,30 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { CurrentUser, GlobalRole, UserProfile } from '@/lib/types/auth';
+import { CurrentUser, GlobalRole, AppUserProfile } from '@/lib/types/auth';
+import { dbToAppProfile, appToDbProfile } from '@/lib/mappers/userProfile';
 import { redirect } from 'next/navigation';
 
 /**
  * Maps DB profile and Auth user to CurrentUser domain object
  */
 function mapToCurrentUser(authUser: any, profile: any): CurrentUser {
+  // Use the centralized mapper for consistency
+  const appProfile = profile ? dbToAppProfile(profile) : {
+    id: authUser.id,
+    fullName: null,
+    globalRole: 'standard_user' as GlobalRole,
+    avatarUrl: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    activeClinicId: null,
+  };
+
   return {
     id: authUser.id,
     email: authUser.email!,
-    fullName: profile?.full_name ?? null,
-    globalRole: (profile?.global_role as GlobalRole) ?? 'standard_user',
-    avatarUrl: profile?.avatar_url ?? null,
-    activeClinicId: profile?.active_clinic_id ?? null,
+    fullName: appProfile.fullName,
+    globalRole: appProfile.globalRole,
+    avatarUrl: appProfile.avatarUrl,
+    activeClinicId: appProfile.activeClinicId,
   };
 }
 
@@ -121,17 +133,17 @@ export async function ensureAuthenticatedServer(): Promise<CurrentUser> {
 export async function upsertUserProfile(input: {
   fullName?: string;
   avatarUrl?: string;
-}): Promise<UserProfile> {
+}): Promise<AppUserProfile> {
   const supabase = await createServerClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+const { data: { user: authUser } } = await supabase.auth.getUser();
 
   if (!authUser) throw new Error('Not authenticated');
 
-  const updates: any = {
-    updated_at: new Date().toISOString(),
-  };
-  if (input.fullName !== undefined) updates.full_name = input.fullName;
-  if (input.avatarUrl !== undefined) updates.avatar_url = input.avatarUrl;
+  // Use centralized mapper for database updates
+  const updates = appToDbProfile({
+    ...input,
+    updatedAt: new Date().toISOString(),
+  });
 
   const { data, error } = await supabase
     .from('user_profiles')
@@ -142,13 +154,6 @@ export async function upsertUserProfile(input: {
 
   if (error) throw new Error(error.message);
 
-  return {
-    id: data.id,
-    fullName: data.full_name,
-    globalRole: data.global_role,
-    avatarUrl: data.avatar_url,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    activeClinicId: data.active_clinic_id,
-  };
+  // Return AppUserProfile using centralized mapper
+  return dbToAppProfile(data);
 }
