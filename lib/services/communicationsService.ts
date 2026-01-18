@@ -8,6 +8,10 @@ import {
   DeliveryAttempt,
   ListMessagesQuery,
   MessageTemplate,
+  StaffNotification,
+  OutboundMessage,
+  DeliveryAttempt
+} from '@/lib/types/communications';
   OutboundMessage,
   QueueMessageInput,
   StaffNotification,
@@ -54,7 +58,7 @@ function mapMessage(row: any): OutboundMessage {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    patientName: row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : undefined,
+    patientName: row.patients ? (dbToAppProfile(row.patients).fullName || 'Unknown') : undefined,
     creatorName: row.user_profiles ? (dbToAppProfile(row.user_profiles).fullName || undefined) : undefined
   };
 }
@@ -197,31 +201,17 @@ export async function listMessages(query: ListMessagesQuery): Promise<{ messages
 
   let dbQuery = supabase
     .from('outbound_messages')
-    .select('*, patients(first_name, last_name), user_profiles(full_name)')
+    .select('*, patients(*), user_profiles(*)')
     .eq('clinic_id', clinicId)
     .order('created_at', { ascending: false });
 
   if (query.patientId) dbQuery = dbQuery.eq('patient_id', query.patientId);
-  if (query.status) dbQuery = dbQuery.eq('status', query.status);
-  if (query.from) dbQuery = dbQuery.gte('planned_send_at', query.from);
-  if (query.to) dbQuery = dbQuery.lte('planned_send_at', query.to);
-  
-  if (query.limit) dbQuery = dbQuery.limit(query.limit);
-  if (query.offset) dbQuery = dbQuery.range(query.offset, query.offset + (query.limit || 20) - 1);
+if (query.status) dbQuery = dbQuery.eq('status', query.status);
 
-  const { data, error } = await dbQuery;
-  if (error) throw new Error(error.message);
-
-  return { messages: data.map(mapMessage) };
-}
-
-export async function cancelMessage(messageId: string): Promise<{ message: OutboundMessage }> {
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from('outbound_messages')
-    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+    .select('*, patients(*), user_profiles(*)')
     .eq('id', messageId)
-    .select('*, patients(first_name, last_name), user_profiles(full_name)')
     .single();
 
   if (error) throw new Error(error.message);
@@ -251,24 +241,24 @@ export async function markMessageSent(messageId: string): Promise<{ message: Out
 
 export async function markMessageFailed(messageId: string, reason?: string): Promise<{ message: OutboundMessage }> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  
+  const { error: msgError } = await supabase
     .from('outbound_messages')
     .update({ status: 'failed', failed_at: new Date().toISOString(), failure_reason: reason })
     .eq('id', messageId)
-    .select('*, patients(first_name, last_name), user_profiles(full_name)')
     .single();
 
-  if (error) throw new Error(error.message);
-
-  await recordAuditEvent({
-    clinicId: data.clinic_id,
-    eventType: 'message.failed',
-    entityType: 'outbound_message',
-    entityId: data.id,
-    metadata: { reason }
-  });
-
-  return { message: mapMessage(data) };
+  if (msgError) throw new Error(msgError.message);
+  
+  const { data: messageData } = await supabase
+    .from('outbound_messages')
+    .select('*, patients(*), user_profiles(*)')
+    .eq('id', messageId)
+    .single();
+    
+  if (!messageData) throw new Error('MESSAGE_NOT_FOUND');
+  
+  return { message: mapMessage(messageData) };
 }
 
 export async function createDeliveryAttempt(input: { messageId: string; status: 'sent' | 'failed'; provider?: string; providerMessageId?: string; error?: string }): Promise<{ attempt: DeliveryAttempt }> {
@@ -410,7 +400,7 @@ export async function queueAppointmentReminder(input: { appointmentId: string; h
     patient_id: appt.patient_id,
     appointment_id: appt.id,
     channel: channel,
-    recipient_name: patient?.first_name || 'Patient',
+    recipient_name: patient?.fullName || 'Patient',
     recipient_contact: contact,
     subject: channel === 'email' ? 'Appointment Reminder' : null,
     body: `Reminder: You have an appointment tomorrow at ${startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`,

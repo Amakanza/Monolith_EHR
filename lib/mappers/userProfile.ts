@@ -53,6 +53,11 @@ export function assertAppProfile(obj: any): asserts obj is AppUserProfile {
   // Check for required camelCase fields
   const requiredFields = ['id', 'fullName', 'globalRole', 'avatarUrl', 'createdAt', 'updatedAt'];
   const missingFields = requiredFields.filter(field => !(field in obj));
+
+  // Enhanced type guard with detailed error reporting
+  if (missingFields.length > 0) {
+    throw new Error(`AppUserProfile missing required fields: ${missingFields.join(', ')}. Required: ${requiredFields.join(', ')}`);
+  }
   
   if (missingFields.length > 0) {
     throw new Error(`Missing required AppUserProfile fields: ${missingFields.join(', ')}`);
