@@ -4,7 +4,17 @@ export default async function DashboardPage() {
   const user = await getCurrentUserServer();
   
   if (!user) {
-    throw new Error('User not authenticated');
+    // During static generation, return a minimal dashboard
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h1 className="text-2xl font-bold text-gray-900">Practice Management Dashboard</h1>
+          <p className="mt-2 text-gray-600">
+            Welcome to your secure practice management system.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

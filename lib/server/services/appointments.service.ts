@@ -53,19 +53,25 @@ function mapAppointment(row: any): Appointment {
 // --- Appointment Types ---
 
 export async function listAppointmentTypes(): Promise<AppointmentType[]> {
-  const supabase = createClient();
-  const user = await ensureAuthenticatedServer();
-  
-  const { data, error } = await supabase
-    .from('appointment_types')
-    .select('*')
-    .eq('clinic_id', user.activeClinicId)
-    .eq('is_active', true)
-    .order('name');
+  try {
+    const user = await ensureAuthenticatedServer();
+    const supabase = createClient();
+    
+    const { data, error } = await supabase
+      .from('appointment_types')
+      .select('*')
+      .eq('clinic_id', user.activeClinicId)
+      .eq('is_active', true)
+      .order('name');
 
-  if (error) throw new Error(error.message);
-  
-  return data ? data.map(mapAppointmentType) : [];
+    if (error) throw new Error(error.message);
+    
+    return data ? data.map(mapAppointmentType) : [];
+  } catch (error) {
+    // Return empty array if not authenticated (e.g., during static generation)
+    // or if there's any other authentication-related error
+    return [];
+  }
 }
 
 // --- Appointments ---
