@@ -16,7 +16,7 @@ export default function AccountPage() {
   });
 
   useEffect(() => {
-    if (user) setFullName(user.fullName ?? '');
+    if (user) setFullName(user.full_name ?? '');
   }, [user]);
 
   const handleLogout = async () => {
