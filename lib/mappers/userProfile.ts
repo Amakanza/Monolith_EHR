@@ -1,4 +1,4 @@
-import { UserProfile, GlobalRole } from '@/lib/types/auth';
+import { UserProfile } from '@/lib/types/auth';
 
 /**
  * Maps database user_profiles row to application UserProfile type
