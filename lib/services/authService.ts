@@ -1,5 +1,5 @@
 import { createClient as createServerClient } from '@/lib/server/supabase/server';
-import { CurrentUser, GlobalRole, AppUserProfile, AppMe, mapDbUserProfileToApp } from '@/lib/types/auth';
+import { CurrentUser, GlobalRole, AppUserProfile, AppMe } from '@/lib/types/auth';
 import { dbToAppProfile, appToDbProfile } from '@/lib/mappers/userProfile';
 import { redirect } from 'next/navigation';
 
@@ -135,7 +135,7 @@ export async function upsertUserProfile(input: {
   avatarUrl?: string;
 }): Promise<AppUserProfile> {
   const supabase = await createServerClient();
-const { data: { user: authUser } } = await supabase.auth.getUser();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
   if (!authUser) throw new Error('Not authenticated');
 
@@ -194,12 +194,12 @@ export async function getMeServer(): Promise<AppMe> {
 
     return {
       auth: { id: authUser.id, email: authUser.email ?? null },
-      profile: mapDbUserProfileToApp(newProfile),
+      profile: dbToAppProfile(newProfile),
     };
   }
 
   return {
     auth: { id: authUser.id, email: authUser.email ?? null },
-    profile: mapDbUserProfileToApp(profile),
+    profile: dbToAppProfile(profile),
   };
 }
