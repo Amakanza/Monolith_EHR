@@ -3,12 +3,12 @@ import { UserProfile } from '@/lib/types/auth';
 /**
  * Maps database user_profiles row to application UserProfile type
  */
-export function dbToAppProfile(dbProfile: any): AppUserProfile {
+export function dbToAppProfile(dbProfile: any): UserProfile {
   if (!dbProfile) {
     return {
       id: '',
       fullName: null,
-      globalRole: 'standard_user' as GlobalRole,
+      globalRole: 'standard_user',
       avatarUrl: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -18,19 +18,21 @@ export function dbToAppProfile(dbProfile: any): AppUserProfile {
 
   return {
     id: dbProfile.id,
-    fullName: dbProfile.full_name || null,
-    globalRole: (dbProfile.global_role as GlobalRole) || 'standard_user',
-    avatarUrl: dbProfile.avatar_url || null,
+    fullName: dbProfile.full_name ?? null,
+    globalRole: dbProfile.global_role ?? 'standard_user',
+    avatarUrl: dbProfile.avatar_url ?? null,
     createdAt: dbProfile.created_at,
     updatedAt: dbProfile.updated_at,
-    activeClinicId: dbProfile.active_clinic_id || null,
+    activeClinicId: dbProfile.active_clinic_id ?? null,
   };
 }
 
 /**
  * Maps application UserProfile updates to database column names
  */
-export function appToDbProfile(appProfile: Partial<AppUserProfile>): Record<string, any> {
+export function appToDbProfile(
+  appProfile: Partial<UserProfile>
+): Record<string, any> {
   const dbProfile: Record<string, any> = {};
 
   if (appProfile.fullName !== undefined) {
