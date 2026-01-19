@@ -6,8 +6,8 @@ export async function PATCH(request: Request) {
     const body = await request.json();
 
     const profile = await upsertUserProfile({
-      full_name: body.full_name,
-      avatar_url: body.avatar_url,
+      fullName: body.fullName,
+      avatarUrl: body.avatarUrl,
     });
 
     return NextResponse.json({ profile });
