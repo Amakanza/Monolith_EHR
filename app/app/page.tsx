@@ -31,7 +31,7 @@ export default async function DashboardPage() {
           <div>
             <dt className="text-sm font-medium text-gray-500">Full Name</dt>
             <dd className="mt-1 text-sm text-gray-900">
-              {userProfile?.full_name || 'Not set'}
+              {userProfile?.fullName || 'Not set'}
             </dd>
           </div>
 
