@@ -1,4 +1,6 @@
-import useSWR from 'swr';
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
 
 // Define the user type that includes both profile and auth info
 export interface CurrentUserData {
@@ -14,22 +16,40 @@ export interface CurrentUserData {
   active_clinic_id: string | null;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export function useCurrentUser() {
-  const { data, error, mutate, isLoading } = useSWR<CurrentUserData>(
-    '/api/me',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
+  const [user, setUser] = useState<CurrentUserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState<Error | null>(null);
+
+  const fetchUser = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setIsError(null);
+
+      const res = await fetch('/api/me');
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch current user');
+      }
+
+      const data: CurrentUserData = await res.json();
+      setUser(data);
+    } catch (err) {
+      setIsError(err as Error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-  );
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   return {
-    user: data,
+    user,
     isLoading,
-    isError: error,
-    mutate,
+    isError,
+    mutate: fetchUser, // keeps same API as SWR
   };
 }
