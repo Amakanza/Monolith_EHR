@@ -1,45 +1,35 @@
-import { useState, useEffect } from 'react';
-import type { UserProfile } from '@/lib/types/auth';
+import useSWR from 'swr';
+
+// Define the user type that includes both profile and auth info
+export interface CurrentUserData {
+  id: string;
+  email: string;
+  full_name: string | null;
+  fullName: string | null;
+  globalRole: string;
+  global_role: string;
+  avatarUrl: string | null;
+  avatar_url: string | null;
+  activeClinicId: string | null;
+  active_clinic_id: string | null;
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Helper to re-fetch
-  const mutate = async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      setUser(data.user);
-    } catch (err) {
-      setUser(null);
+  const { data, error, mutate, isLoading } = useSWR<CurrentUserData>(
+    '/api/me',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
     }
-  };
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchUser();
-  }, []);
+  );
 
   return {
-    user,
+    user: data,
     isLoading,
-    isAuthenticated: !!user,
+    isError: error,
     mutate,
   };
 }
