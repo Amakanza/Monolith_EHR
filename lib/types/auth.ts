@@ -10,6 +10,16 @@ export interface UserProfile {
   activeClinicId?: string | null;
 }
 
+export type AppUserProfile = UserProfile;
+
+export interface AppMe {
+  auth: {
+    id: string;
+    email: string | null;
+  };
+  profile: UserProfile;
+}
+
 export interface CurrentUser {
   id: string;
   email: string;
