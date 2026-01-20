@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/server/auth/require-user';
 import { createClient } from '@/lib/server/supabase/server';
-import type { UserProfile } from '@/lib/types/auth';
+import { dbToAppProfile } from '@/lib/mappers/userProfile';
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -13,8 +13,8 @@ export default async function DashboardPage() {
     .single();
 
   // Keep DB + type shape (snake_case) consistent
-  const userProfile = (profile as UserProfile | null) ?? null;
-
+  const userProfile = profile ? dbToAppProfile(profile) : null;
+  
   return (
     <div className="space-y-6">
       <div className="rounded-lg bg-white p-6 shadow">
@@ -48,9 +48,9 @@ export default async function DashboardPage() {
           <div>
             <dt className="text-sm font-medium text-gray-500">Active Clinic</dt>
             <dd className="mt-1 text-sm text-gray-900">
-              {userProfile?.active_clinic_id ? (
+              {userProfile?.activeClinicId ? (
                 <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                  {userProfile.active_clinic_id}
+                  {userProfile.activeClinicId}
                 </span>
               ) : (
                 <span className="italic text-gray-400">None</span>
