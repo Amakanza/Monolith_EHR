@@ -7,7 +7,6 @@ function mapClinic(row: any): Clinic {
     id: row.id,
     name: row.name,
     timezone: row.timezone,
-    slug: row.slug || '',
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
